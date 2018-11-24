@@ -12,6 +12,10 @@ eg.
 
 where `GreedyAgent` is an `Agent` Class in [pacmanAgents.py](./pacmanAgents.py) and `DirectionalGhost` is a `GhostAgent` Class in [ghostAgents.py](./ghostAgents.py).
 
+Any file with postfix `gents.py` will searched when looking for agents.
+
 
 ### Test independently learned RL Ghost Agents
-eg. `python pacman.py --pacman=AlphaBetaAgent --ghosts=RLGhost --numTraining=100 -l testRL -n 110`
+eg. `python pacman.py --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=100 -l testRL -n 110`
+
+The last (110 - 100) games will be displayed

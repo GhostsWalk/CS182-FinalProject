@@ -552,9 +552,9 @@ def readCommand( argv ):
     args['pacman'] = pacman
 
     # Don't display training games
-    if 'numTrain' in agentOpts:
-        options.numQuiet = int(agentOpts['numTrain'])
-        options.numIgnore = int(agentOpts['numTrain'])
+    # if 'numTrain' in agentOpts:
+    #     options.numQuiet = int(agentOpts['numTrain'])
+    #     options.numIgnore = int(agentOpts['numTrain'])
 
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
@@ -639,6 +639,7 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
 
     rules = ClassicGameRules(timeout)
     games = []
+    training_games = []
     for i in range( numGames ):
         beQuiet = i < numTraining
         if beQuiet:
@@ -651,7 +652,10 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
             rules.quiet = False
         game = rules.newGame( layout, pacman, ghosts, gameDisplay, beQuiet, catchExceptions)
         game.run()
-        if not beQuiet: games.append(game)
+        if not beQuiet:
+            games.append(game)
+        else:
+            training_games.append(game)
 
         if record:
             import time, cPickle
@@ -661,16 +665,28 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
             cPickle.dump(components, f)
             f.close()
 
-    if (numGames-numTraining) > 0:
+    def print_records(games, title='All Games'):
         scores = [game.state.getScore() for game in games]
         wins = [game.state.isWin() for game in games]
-        winRate = wins.count(True)/ float(len(wins))
+        winRate = wins.count(True) / float(len(wins))
+        print(title)
+        print("======================")
         print 'Average Score:', sum(scores) / float(len(scores))
         print 'Scores:       ', ', '.join([str(score) for score in scores])
-        print 'Win Rate:      %d/%d (%.2f)' % (wins.count(True), len(wins), winRate)
-        print 'Record:       ', ', '.join([ ['Loss', 'Win'][int(w)] for w in wins])
+        print 'Win Rate:      %d/%d (%.2f)' % (
+        wins.count(True), len(wins), winRate)
+        print 'Record:       ', ', '.join(
+            [['Loss', 'Win'][int(w)] for w in wins])
+
+    if (numGames-numTraining) > 0:
+        PRINT_TRAINING = False
+        if PRINT_TRAINING:
+            print_records(training_games, title="Training Games")
+            print("")
+        print_records(games, title="Non Training Games")
 
     return games
+
 
 if __name__ == '__main__':
     """
