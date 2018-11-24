@@ -378,11 +378,13 @@ class PacmanRules:
                 state.data.agentStates[index].scaredTimer = SCARED_TIME
     consume = staticmethod( consume )
 
+
 class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
     GHOST_SPEED=1.0
+
     def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
@@ -523,6 +525,9 @@ def readCommand( argv ):
                       help='Turns on exception handling and timeouts during games', default=False)
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
+    parser.add_option('--ghostArgs', dest='ghostArgs',
+                      help='Comma separated values sent to ghost. e.g. "opt1=val1,opt2,opt3=val3"')
+
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -553,7 +558,10 @@ def readCommand( argv ):
 
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
-    args['ghosts'] = [ghostType( i+1 ) for i in range( options.numGhosts )]
+    ghostOpts = parseAgentArgs(options.ghostArgs)
+    if options.numTraining > 0:
+        if 'numTraining' not in ghostOpts: ghostOpts['numTraining'] = options.numTraining
+    args['ghosts'] = [ghostType(index=i+1, **ghostOpts) for i in range( options.numGhosts)]
 
     # Choose a display format
     if options.quietGraphics:
@@ -631,7 +639,6 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
 
     rules = ClassicGameRules(timeout)
     games = []
-
     for i in range( numGames ):
         beQuiet = i < numTraining
         if beQuiet:
