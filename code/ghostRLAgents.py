@@ -3,7 +3,7 @@ import util, time, random
 
 
 class QLearningGhost(GhostAgent):
-    def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1):
+    def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1, partialObs=False):
         """
         :param actionFn: Function which takes a state and returns the list of legal actions
         :param numTraining: number of training episodes, i.e. no learning after these many episodes
@@ -22,6 +22,7 @@ class QLearningGhost(GhostAgent):
         self.epsilon = float(epsilon)
         self.alpha = float(alpha)
         self.discount = float(gamma)
+        self.partialObs = partialObs
 
         self.qValues = util.Counter()
 
@@ -47,7 +48,7 @@ class QLearningGhost(GhostAgent):
             self.epsilon = 0.0  # no exploration
             self.alpha = 0.0  # no learning
 
-    def getLegalActions(self,state):
+    def getLegalActions(self, state):
         """
           Get the actions available for a given
           state. This is what you should use to
@@ -64,17 +65,21 @@ class QLearningGhost(GhostAgent):
             NOTE: Do *not* override or call this function
         """
         self.episodeRewards += deltaReward
-        self.update(state,action,nextState,deltaReward)
+        self.update(state, action, nextState, deltaReward)
 
     def observationFunction(self, state):
         """
             This is where we ended up after our last action.
             The simulation should somehow ensure this is called
         """
+        if self.partialObs:
+            obs = state.obs(self.index)
+        else:
+            obs = state.deepCopy()
         if not self.lastState is None:
             reward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
-            self.observeTransition(self.lastState, self.lastAction, state, reward)
-        return state
+            self.observeTransition(self.lastState, self.lastAction, obs, reward)
+        return obs
 
     def registerInitialState(self, state):
         self.startEpisode()
@@ -86,7 +91,12 @@ class QLearningGhost(GhostAgent):
           Called by Pacman game at the terminal state
         """
         deltaReward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
-        self.observeTransition(self.lastState, self.lastAction, state, deltaReward)
+        # print("reward {}".format(deltaReward))
+        if self.partialObs:
+            obs = state.obs(self.index)
+        else:
+            obs = state.deepCopy()
+        self.observeTransition(self.lastState, self.lastAction, obs, deltaReward)
         self.stopEpisode()
 
         # Make sure we have this var
@@ -121,6 +131,7 @@ class QLearningGhost(GhostAgent):
             print '%s\n%s' % (msg,'-' * len(msg))
 
         # print("q values: {}".format(self.qValues.values()))
+        # print("qvalues: {}".format(self.qValues.keys()))
 
     ###############################
     # Q-learning Specific Updates #

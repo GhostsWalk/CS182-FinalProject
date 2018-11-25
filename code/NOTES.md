@@ -17,3 +17,12 @@ Currently, the **Pacman Agent** used for testing is `AlphaBetaAgent`. To better 
 
 ## Storing Trained Agents
 For ease of development and evaluation, a way to store and retrieve trained agents is needed.
+
+## Partial Observation
+Partial observation about walls need to be added to `Observation`.
+
+More partial observation schemes need to be implemented.
+
+
+## Tests
+For ease of continuous development, unit tests would be helpful.

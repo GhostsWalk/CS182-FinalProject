@@ -19,3 +19,9 @@ Any file with postfix `gents.py` will searched when looking for agents.
 eg. `python pacman.py --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=100 -l testRL -n 110`
 
 The last (110 - 100) games will be displayed
+
+
+### To Enable Partial Observation
+eg. `python pacman.py --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=100 -l testRL -n 110 --ghostArgs partialObs=True`
+
+The default partial observation scheme is that the agents can not see further than 2 squares away from it in any directions.

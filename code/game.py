@@ -430,6 +430,8 @@ class GameStateData:
             except TypeError, e:
                 print e
                 #hash(state)
+        # return int((hash(tuple(self.agentStates)) + 13 * hash(
+        #    self.food) + 113 * hash(tuple(self.capsules))) % 1048575) # Ignore score for hashing
         return int((hash(tuple(self.agentStates)) + 13*hash(self.food) + 113* hash(tuple(self.capsules)) + 7 * hash(self.score)) % 1048575 )
 
     def __str__( self ):
@@ -515,7 +517,7 @@ class Game:
     The Game manages the control flow, soliciting actions from agents.
     """
 
-    def __init__( self, agents, display, rules, startingIndex=0, muteAgents=False, catchExceptions=False ):
+    def __init__( self, agents, display, rules, startingIndex=0, muteAgents=False, catchExceptions=False):
         self.agentCrashed = False
         self.agents = agents
         self.display = display
@@ -562,7 +564,6 @@ class Game:
         # Revert stdout/stderr to originals
         sys.stdout = OLD_STDOUT
         sys.stderr = OLD_STDERR
-
 
     def run( self ):
         """
@@ -649,7 +650,7 @@ class Game:
                         start_time = time.time()
                         if skip_action:
                             raise TimeoutFunctionException()
-                        action = timed_func( observation )
+                        action = timed_func(observation)
                     except TimeoutFunctionException:
                         print >>sys.stderr, "Agent %d timed out on a single move!" % agentIndex
                         self.agentTimeout = True
@@ -726,4 +727,8 @@ class Game:
                     self._agentCrash(agentIndex)
                     self.unmute()
                     return
+        # for agentIndex, agent in enumerate(self.agents):
+        #     if "qValues" in dir(agent):
+        #         print("agent #{}".format(agentIndex))
+        #         print(agent.qValues)
         self.display.finish()
