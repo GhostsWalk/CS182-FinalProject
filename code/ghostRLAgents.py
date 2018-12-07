@@ -3,7 +3,7 @@ import util, time, random
 
 
 class QLearningGhost(GhostAgent):
-    def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1, partialObs=False):
+    def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1, partialObs=True):
         """
         :param actionFn: Function which takes a state and returns the list of legal actions
         :param numTraining: number of training episodes, i.e. no learning after these many episodes

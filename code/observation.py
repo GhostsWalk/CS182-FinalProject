@@ -15,7 +15,7 @@ class Observation:
             else state.getGhostPosition(agentIndex)
 
         pacmanPos = state.getPacmanPosition()
-        self.pacman = self.relativePos(pacmanPos) #if self.withinDistance(pacmanPos) else None
+        self.pacman = self.relativePos(pacmanPos) # if self.withinDistance(pacmanPos) else None
         if self.pacman != None:
             p = random.random()
             if (p < 0.1):
