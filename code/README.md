@@ -25,3 +25,10 @@ The last (110 - 100) games will be displayed
 eg. `python pacman.py --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=100 -l testRL -n 110 --ghostArgs partialObs=True`
 
 The default partial observation scheme is that the agents can not see further than 2 squares away from it in any directions.
+
+
+# How to Run Experiment
+
+eg. `python experiment.py --layout testRL --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=500`
+
+It will generate a plot of the experiment, and save to `plots/{ghostType}-{numTraining}.png`.
