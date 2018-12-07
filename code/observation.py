@@ -1,3 +1,5 @@
+import random
+
 class Observation:
     '''
     Class to model partial observation for agents
@@ -13,7 +15,17 @@ class Observation:
             else state.getGhostPosition(agentIndex)
 
         pacmanPos = state.getPacmanPosition()
-        self.pacman = self.relativePos(pacmanPos) if self.withinDistance(pacmanPos) else None
+        self.pacman = self.relativePos(pacmanPos) #if self.withinDistance(pacmanPos) else None
+        if self.pacman != None:
+            p = random.random()
+            if (p < 0.1):
+                self.pacman = (self.pacman[0] + 1, self.pacman[1])
+            elif (p < 0.2):
+                self.pacman = (self.pacman[0] - 1, self.pacman[1])
+            elif(p < 0.3):
+                self.pacman = (self.pacman[0], self.pacman[1] + 1)
+            elif(p < 0.4):
+                self.pacman = (self.pacman[0], self.pacman[1] - 1)
         self.ghosts = set()
         for pos in state.getGhostPositions():
             if self.withinDistance(pos):
