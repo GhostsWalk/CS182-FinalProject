@@ -65,7 +65,7 @@ def read_command(argv):
     # Set number of training episodes for experiment
     args['numTraining'] = options.numTraining
 
-    return args
+    return args, options
 
 
 def run_experiment(layout, pacman, ghosts, numTraining, catchExceotions=False, timeout=30):
@@ -83,7 +83,7 @@ def run_experiment(layout, pacman, ghosts, numTraining, catchExceotions=False, t
 
 
 if __name__ == "__main__":
-    args = read_command(sys.argv[1:])
+    args, options = read_command(sys.argv[1:])
     games = run_experiment(**args)
     scores = [-game.state.getScore() for game in games]
 
@@ -97,6 +97,6 @@ if __name__ == "__main__":
     plt.title(ghost_class_name)
     plt.xlabel("training episodes")
     plt.ylabel("running average scores")
-    plt.savefig("plots/{}-{}".format(ghost_class_name,
+    plt.savefig("plots/{}-{}-{}".format(ghost_class_name, options.layout,
                                args["numTraining"]))
     plt.show()
