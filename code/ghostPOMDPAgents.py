@@ -1,4 +1,5 @@
 from ghostAgents import GhostAgent
+from ghostRLAgents import QLearningGhost
 import util, time, random
 
 
@@ -57,7 +58,7 @@ class POMDPGhost(GhostAgent):
         """
         return self.actionFn(state)
 
-    def observeTransition(self, state, action, nextState, deltaReward):
+    def observeTransition(self, evidence, action, result, deltaReward):
         """
             Called by environment to inform agent that a transition has
             been observed. This will result in a call to self.update
@@ -66,7 +67,7 @@ class POMDPGhost(GhostAgent):
             NOTE: Do *not* override or call this function
         """
         self.episodeRewards += deltaReward
-        self.update(state, action, nextState, deltaReward)
+        self.update(state, evidence, nextState, deltaReward)
 
     def observationFunction(self, state):
         """
@@ -86,18 +87,20 @@ class POMDPGhost(GhostAgent):
         self.startEpisode()
         if self.episodesSoFar == 0:
             print 'Beginning %d episodes of Training' % self.numTraining
+        self.record = []
+        self.transition = util.Counter()
 
     def final(self, state):
         """
           Called by Pacman game at the terminal state
         """
-        deltaReward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
+        #deltaReward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
         # print("reward {}".format(deltaReward))
         if self.partialObs:
             obs = state.obs(self.index)
         else:
             obs = state.deepCopy()
-        self.observeTransition(self.lastState, self.lastAction, obs, deltaReward)
+        #self.observeTransition(self.lastState, self.lastAction, obs, deltaReward)
         self.stopEpisode()
 
         # Make sure we have this var
@@ -131,111 +134,71 @@ class POMDPGhost(GhostAgent):
             msg = 'Training Done (turning off epsilon and alpha)'
             print '%s\n%s' % (msg,'-' * len(msg))
 
-        # print("q values: {}".format(self.qValues.values()))
-        # print("qvalues: {}".format(self.qValues.keys()))
 
     ###############################
-    # Q-learning Specific Updates #
+    # POMDP Specific Updates #
     ###############################
 
-    def update(self, state, action, nextState, reward):
+    def update(self, e1, action, e2):
         """
           The parent class calls this to observe a
           state = action => nextState and reward transition.
-          You should do your Q-Value update here
 
           NOTE: You should never call this function,
           it will be called on your behalf
-        """
-        next_value = self.computeValueFromQValues(nextState)
-        value = self.getQValue(state, action)
-        self.qValues[(state, action)] += self.alpha * (reward +
-                                                        self.discount *
-                                                        next_value - value)
-
-    def getQValue(self, state, action):
-        """
-          Should return Q(state,action) = w * featureVector
-          where * is the dotProduct operator
-        """
-        return self.qValues[(state, action)]
-
-    def computeValueFromQValues(self, state):
-        """
-          Returns max_action Q(state,action)
-          where the max is over legal actions.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return a value of 0.0.
-        """
-        actions = self.getLegalActions(state)
-        if len(actions) == 0:
-            return 0.0
-        best_value = max([self.getQValue(state, action) for action in
-                          actions])
-        return best_value
-
-    def computeActionFromQValues(self, state):
-        """
-          Compute the best action to take in a state.  Note that if there
-          are no legal actions, which is the case at the terminal state,
-          you should return None.
-        """
-        actions = list(self.getLegalActions(state))
-        if len(actions) == 0:
-            return None
-
-        random.shuffle(actions)
-        best_action = None
-        best_value = None
-        for action in actions:
-            value = self.getQValue(state, action)
-            if best_value is None or value > best_value:
-                best_action = action
-                best_value = value
-        return best_action
-
-    def pickAction(self, state):
-        """
-          Compute the action to take in the current state.  With
-          probability self.epsilon, we should take a random action and
-          take the best policy action otherwise.  Note that if there are
-          no legal actions, which is the case at the terminal state, you
-          should choose None as the action.
-
-          HINT: You might want to use util.flipCoin(prob)
-          HINT: To pick randomly from a list, use random.choice(list)
-        """
-        # Pick Action
-        legalActions = self.getLegalActions(state)
-        if len(legalActions) == 0:
-            return None
-
-        if util.flipCoin(self.epsilon):
-            return random.choice(legalActions)
-        return self.computeActionFromQValues(state)
+        """        
+        self.transition[e1, action, e2] = self.transition[e1, action, e2] + 1
 
     def getAction(self, state):
         """
-            Simply calls the pickAction method and then
             record the action taken for next next reward computation.
         """
-        action = self.pickAction(state)
-        self.recordAction(state, action)
+        # Initialize belief distribution if belief distribution not exists
+        if self.belief == None:
+            e = state.pacman
+            self.belief = {}
+            self.belief[e] = 0.6
+            self.belief[(e[0]-1,e[1])] = 0.1
+            self.belief[(e[0]+1,e[1])] = 0.1
+            self.belief[(e[0],e[1]-1)] = 0.1
+            self.belief[(e[0],e[1]+1)] = 0.1
+
+        actions = self.getLegalActions(state)
+        state_to_evidence = util.Counter()
+        state_to_action = {}
+        for k in self.belief.keys():
+            v = util.Counter()
+            for a in actions:
+                result = util.Counter()
+                for t in self.transition.keys():
+                    if t[0] == k and t[1] == a:
+                        result[t[2]] = self.transition[t]
+                        state_to_evidence[t[2]] = self.transition[t] + state_to_evidence[t[2]]
+                if len(result.keys()) == 0:
+                    v[a] = 0
+                else:
+                    result.normalize()
+                    for r in result.keys():
+                        v[a] = v[a] + result[r]*0.6 *(-(abs(r[0])+abs(r[1]))) + result[r]*0.1 *(
+                            -(abs(r[0]+1)+abs(r[1])))+ result[r]*0.1 *(-(abs(r[0]-1)+abs(r[1])))+ result[r]*0.1 *(
+                            -(abs(r[0])+abs(r[1]+1))) + + result[r]*0.1 *(-(abs(r[0])+abs(r[1]-1)))
+                state_to_action[(k,a)] = v[a]
+        v = util.Counter()
+        for a in actions:
+            for k in self.belief.keys():
+                v[a] = v[a] + self.belief[k] * state_to_action[(k,a)]
+
+        value = float('-Inf')
+        for a in v.keys():
+            if v[a] > value:
+                action = a
+
+
 
         if self.belief != None:
             e = state.pacman
             if e != None:
-                nextState = util.Counter()
-                for s in self.belief.keys():
-                    nextState[(s[0], s[1])] = self.belief[s] + nextState[(s[0], s[1])]
-                    nextState[(s[0], s[1]-1)] = self.belief[s] + nextState[(s[0], s[1]-1)]
-                    nextState[(s[0], s[1]+1)] = self.belief[s] + nextState[(s[0], s[1]+1)]
-                    nextState[(s[0]-1, s[1])] = self.belief[s] + nextState[(s[0]-1, s[1])]
-                    nextState[(s[0]-1, s[1]-1)] = self.belief[s] + nextState[(s[0]-1, s[1])]
-                    nextState[(s[0]-1, s[1]+1)] = self.belief[s] + nextState[(s[0]-1, s[1])]
-                    nextState[(s[0]+1, s[1])] = self.belief[s] + nextState[(s[0]+1, s[1])]
-                    nextState[(s[0]+1, s[1]-1)] = self.belief[s] + nextState[(s[0]+1, s[1])]
-                    nextState[(s[0]+1, s[1]+1)] = self.belief[s] + nextState[(s[0]+1, s[1])]
+                nextState = state_to_evidence.normalize()
                 evidence = util.Counter()
                 transfer = {}
                 transfer[(0,0)] = 0.6
@@ -243,11 +206,13 @@ class POMDPGhost(GhostAgent):
                 transfer[(-1,0)] = 0.1
                 transfer[(0,1)] = 0.1
                 transfer[(0,-1)] = 0.1
-                for s in nextState.keys():
-                    x = e[0] - s[0]
-                    y = e[1] - s[1]
-                    if (x,y) in transfer.keys():
-                        evidence[s] = transfer[(x,y)] * nextState[s] + evidence[s]
+                if nextState != None:
+                    for s in nextState.keys():
+                        x = e[0] - s[0]
+                        y = e[1] - s[1]
+                        if (x,y) in transfer.keys():
+                            evidence[s] = transfer[(x,y)] * nextState[s] + evidence[s]
+                evidence.normalize()
                 self.belief = evidence
                 if len(evidence.keys()) == 0:
                     self.belief = {}
@@ -256,18 +221,10 @@ class POMDPGhost(GhostAgent):
                     self.belief[(e[0]+1,e[1])] = 0.1
                     self.belief[(e[0],e[1]-1)] = 0.1
                     self.belief[(e[0],e[1]+1)] = 0.1
-        else:
-            e = state.pacman
-            self.belief = {}
-            self.belief[e] = 0.6
-            self.belief[(e[0]-1,e[1])] = 0.1
-            self.belief[(e[0]+1,e[1])] = 0.1
-            self.belief[(e[0],e[1]-1)] = 0.1
-            self.belief[(e[0],e[1]+1)] = 0.1
-        #print self.belief
+
+        # Update records for evidence and action
+        if len(self.record) > 0:
+            self.update(self.record[-1][0], self.record[-1][1], e)
+        self.record.append((e,a))
         return action
 
-
-    def recordAction(self, state, action):
-        self.lastState = state
-        self.lastAction = action
