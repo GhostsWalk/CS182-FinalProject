@@ -16,6 +16,7 @@ from game import Agent
 from game import Directions
 import random
 
+
 class KeyboardAgent(Agent):
     """
     An agent controlled by the keyboard.

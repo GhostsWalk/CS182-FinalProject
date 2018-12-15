@@ -15,7 +15,6 @@
 from util import manhattanDistance
 from game import Directions
 import random, util
-
 from game import Agent
 
 
@@ -86,6 +85,7 @@ def scoreEvaluationFunction(currentGameState):
       (not reflex agents).
     """
     return currentGameState.getScore()
+
 
 class MultiAgentSearchAgent(Agent):
     """

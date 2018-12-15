@@ -46,8 +46,9 @@ from game import Actions
 from util import nearestPoint
 from util import manhattanDistance
 from observation import Observation
-import util, layout
-import sys, types, time, random, os
+import layout
+import sys, random, os
+from importlib import import_module
 
 ###################################################
 # YOUR INTERFACE TO THE PACMAN WORLD: A GameState #
@@ -605,14 +606,19 @@ def loadAgent(pacman, nographics):
     else:
         pythonPathDirs = pythonPathStr.split(';')
     pythonPathDirs.append('.')
+    pythonPathDirs.append("agents")
 
     for moduleDir in pythonPathDirs:
         if not os.path.isdir(moduleDir): continue
         moduleNames = [f for f in os.listdir(moduleDir) if f.endswith('gents.py')]
         for modulename in moduleNames:
             try:
-                module = __import__(modulename[:-3])
-            except ImportError:
+                if moduleDir == ".":
+                    name = modulename[:-3]
+                else:
+                    name = "{}.{}".format(moduleDir, modulename[:-3])
+                module = import_module(name)
+            except ImportError as e:
                 continue
             if pacman in dir(module):
                 if nographics and modulename == 'keyboardAgents.py':
@@ -621,9 +627,10 @@ def loadAgent(pacman, nographics):
     raise Exception('The agent ' + pacman + ' is not specified in any *Agents.py.')
 
 def replayGame( layout, actions, display ):
-    import pacmanAgents, ghostAgents
+    import pacmanAgents
+    from code.agents import ghostAgents
     rules = ClassicGameRules()
-    agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i+1) for i in range(layout.getNumGhosts())]
+    agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i + 1) for i in range(layout.getNumGhosts())]
     game = rules.newGame( layout, agents[0], agents[1:], display )
     state = game.state
     display.initialize(state.data)

@@ -1,6 +1,5 @@
 from ghostAgents import GhostAgent
-from ghostRLAgents import QLearningGhost
-import util, time, random
+import util, time
 
 
 class POMDPGhost(GhostAgent):

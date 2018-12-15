@@ -1,5 +1,6 @@
+import time, random
 from ghostAgents import GhostAgent
-import util, time, random
+import util
 
 
 class QLearningGhost(GhostAgent):
