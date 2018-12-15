@@ -16,7 +16,7 @@ from util import manhattanDistance
 from game import Directions
 import random, util
 from game import Agent
-from agents.agent_util import evaluationFunctionWithDistance
+from agents.agent_util import evaluationFunctionWithDistance, scoreEvaluationFunction
 
 
 class ReflexAgent(Agent):
@@ -92,7 +92,7 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn = 'evaluationFunctionWithDistance', depth = '2', **kwargs):
+    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2', **kwargs):
         self.index = 0 # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
