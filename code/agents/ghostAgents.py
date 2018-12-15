@@ -18,7 +18,8 @@ from game import Directions
 import random
 from util import manhattanDistance
 import util
-from multiAgents import scoreEvaluationFunction
+from agent_util import scoreEvaluationFunction
+from agent_util import evaluationFunctionWithDistance
 
 
 class GhostAgent( Agent ):
@@ -177,16 +178,9 @@ class AlphaBetaGhost(GhostAgent):
 
     @staticmethod
     def endOfPly(current_agent, num_agents):
+        """
+        :param current_agent: int
+        :param num_agents: int
+        :return: True if end of a ply (a run for each agent)
+        """
         return current_agent == num_agents-1
-
-
-def evaluationFunctionWithDistance(state):
-    """
-    :param state: GameState
-    :return: evaluate score + heuristic that includes distance
-    """
-    score = state.getScore()
-    pacman_pos = state.getPacmanPosition()
-    positions = state.getGhostPositions()
-    distances = [manhattanDistance(pacman_pos, ghost) for ghost in positions]
-    return score + sum(distances)

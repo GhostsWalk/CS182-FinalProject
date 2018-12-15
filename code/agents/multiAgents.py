@@ -16,6 +16,7 @@ from util import manhattanDistance
 from game import Directions
 import random, util
 from game import Agent
+from agents.agent_util import evaluationFunctionWithDistance
 
 
 class ReflexAgent(Agent):
@@ -76,17 +77,6 @@ class ReflexAgent(Agent):
         return successorGameState.getScore()
 
 
-def scoreEvaluationFunction(currentGameState):
-    """
-      This default evaluation function just returns the score of the state.
-      The score is the same one displayed in the Pacman GUI.
-
-      This evaluation function is meant for use with adversarial search agents
-      (not reflex agents).
-    """
-    return currentGameState.getScore()
-
-
 class MultiAgentSearchAgent(Agent):
     """
       This class provides some common elements to all of your
@@ -102,7 +92,7 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2', **kwargs):
+    def __init__(self, evalFn = 'evaluationFunctionWithDistance', depth = '2', **kwargs):
         self.index = 0 # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
@@ -336,17 +326,3 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         best_score = max(scores) if agentIndex == 0 else sum(scores)/float(len(
             scores))
         return best_score
-
-def betterEvaluationFunction(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
-
-      DESCRIPTION: <write something here so we know what you did>
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
-
-# Abbreviation
-better = betterEvaluationFunction
-
