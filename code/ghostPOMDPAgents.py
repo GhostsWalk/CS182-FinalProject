@@ -1,9 +1,8 @@
 from ghostAgents import GhostAgent
-from ghostRLAgents import QLearningGhost
 import util, time, random
 
 
-class POMDPGhost(GhostAgent):
+class BayesianRLGhost(GhostAgent):
     def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1, partialObs=True):
         """
         :param actionFn: Function which takes a state and returns the list of legal actions
@@ -35,6 +34,8 @@ class POMDPGhost(GhostAgent):
         self.lastAction = None
         self.episodeRewards = 0.0
         self.belief = None
+        self.record = []
+        self.transition = util.Counter()
 
     def stopEpisode(self):
         """
@@ -87,8 +88,6 @@ class POMDPGhost(GhostAgent):
         self.startEpisode()
         if self.episodesSoFar == 0:
             print 'Beginning %d episodes of Training' % self.numTraining
-        self.record = []
-        self.transition = util.Counter()
 
     def final(self, state):
         """
@@ -147,24 +146,69 @@ class POMDPGhost(GhostAgent):
           NOTE: You should never call this function,
           it will be called on your behalf
         """        
-        self.transition[e1, action, e2] = self.transition[e1, action, e2] + 1
+        self.transition[e1, action, e2] = self.transition[e1, action, e2] + 0.36
+        for e in [(e2[0]-1,e2[1]), (e2[0]+1,e2[1]), (e2[0],e2[1]-1), (e2[0], e2[1]+1)]:
+            self.transition[e1, action, e] = self.transition[e1, action, e] + 0.06
+        for e in [(e1[0]-1,e1[1]), (e1[0]+1,e1[1]), (e1[0],e1[1]-1), (e1[0], e1[1]+1)]:
+            self.transition[e, action, e2] = self.transition[e, action, e2] + 0.06
+        for e_2 in [(e2[0]-1,e2[1]), (e2[0]+1,e2[1]), (e2[0],e2[1]-1), (e2[0], e2[1]+1)]:
+            for e_1 in [(e1[0]-1,e1[1]), (e1[0]+1,e1[1]), (e1[0],e1[1]-1), (e1[0], e1[1]+1)]:
+                self.transition[e_1,action,e_2] = self.transition[e_1,action,e_2] + 0.01
 
     def getAction(self, state):
         """
             record the action taken for next next reward computation.
         """
-        # Initialize belief distribution if belief distribution not exists
+
+
+        # Get legal actions
+        actions = self.getLegalActions(state)
+
+        # Get values for specific state and action after 1 horizon
+
+        # Initialize belief distribution if it does not exist
         if self.belief == None:
             e = state.pacman
-            self.belief = {}
+            self.belief = util.Counter()
             self.belief[e] = 0.6
             self.belief[(e[0]-1,e[1])] = 0.1
             self.belief[(e[0]+1,e[1])] = 0.1
             self.belief[(e[0],e[1]-1)] = 0.1
             self.belief[(e[0],e[1]+1)] = 0.1
+            self.belief.normalize()
 
-        actions = self.getLegalActions(state)
-        state_to_evidence = util.Counter()
+        # Update belief if it exists
+        else:
+            e = state.pacman
+            state_to_evidence = util.Counter()
+            for k in self.belief.keys():
+                a = self.record[-1][1]
+                for t in self.transition.keys():
+                    if t[0] == k and t[1] == a:
+                        if e == t[2]:
+                            state_to_evidence[t[2]] = self.transition[t] *0.6 + state_to_evidence[t[2]]
+                        elif e == (t[2][0]-1, t[2][1]):
+                            state_to_evidence[t[2]] = self.transition[t] *0.1 + state_to_evidence[t[2]]
+                        elif e == (t[2][0]+1, t[2][1]):
+                            state_to_evidence[t[2]] = self.transition[t] *0.1 + state_to_evidence[t[2]]
+                        elif e == (t[2][0], t[2][1]-1):
+                            state_to_evidence[t[2]] = self.transition[t] *0.1 + state_to_evidence[t[2]]
+                        elif e == (t[2][0], t[2][1]+1):
+                            state_to_evidence[t[2]] = self.transition[t] *0.1 + state_to_evidence[t[2]]
+            if len(state_to_evidence.keys()) != 0:
+                self.belief = state_to_evidence
+                self.belief.normalize()
+            else:
+                self.belief = util.Counter()
+                self.belief[e] = 0.6
+                self.belief[(e[0]-1,e[1])] = 0.1
+                self.belief[(e[0]+1,e[1])] = 0.1
+                self.belief[(e[0],e[1]-1)] = 0.1
+                self.belief[(e[0],e[1]+1)] = 0.1
+                self.belief.normalize()
+
+
+        # Update values of actions in horizon of 1 setp
         state_to_action = {}
         for k in self.belief.keys():
             v = util.Counter()
@@ -173,58 +217,31 @@ class POMDPGhost(GhostAgent):
                 for t in self.transition.keys():
                     if t[0] == k and t[1] == a:
                         result[t[2]] = self.transition[t]
-                        state_to_evidence[t[2]] = self.transition[t] + state_to_evidence[t[2]]
-                if len(result.keys()) == 0:
-                    v[a] = 0
-                else:
+                if len(result.keys()) > 0:
                     result.normalize()
                     for r in result.keys():
                         v[a] = v[a] + result[r]*0.6 *(-(abs(r[0])+abs(r[1]))) + result[r]*0.1 *(
                             -(abs(r[0]+1)+abs(r[1])))+ result[r]*0.1 *(-(abs(r[0]-1)+abs(r[1])))+ result[r]*0.1 *(
                             -(abs(r[0])+abs(r[1]+1))) + + result[r]*0.1 *(-(abs(r[0])+abs(r[1]-1)))
                 state_to_action[(k,a)] = v[a]
+
         v = util.Counter()
         for a in actions:
             for k in self.belief.keys():
                 v[a] = v[a] + self.belief[k] * state_to_action[(k,a)]
 
+        action = None
         value = float('-Inf')
         for a in v.keys():
             if v[a] > value:
                 action = a
+        if action == None:
+            random.shuffle(actions)
+            action = actions[0]
 
-
-
-        if self.belief != None:
-            e = state.pacman
-            if e != None:
-                nextState = state_to_evidence.normalize()
-                evidence = util.Counter()
-                transfer = {}
-                transfer[(0,0)] = 0.6
-                transfer[(1,0)] = 0.1
-                transfer[(-1,0)] = 0.1
-                transfer[(0,1)] = 0.1
-                transfer[(0,-1)] = 0.1
-                if nextState != None:
-                    for s in nextState.keys():
-                        x = e[0] - s[0]
-                        y = e[1] - s[1]
-                        if (x,y) in transfer.keys():
-                            evidence[s] = transfer[(x,y)] * nextState[s] + evidence[s]
-                evidence.normalize()
-                self.belief = evidence
-                if len(evidence.keys()) == 0:
-                    self.belief = {}
-                    self.belief[e] = 0.6
-                    self.belief[(e[0]-1,e[1])] = 0.1
-                    self.belief[(e[0]+1,e[1])] = 0.1
-                    self.belief[(e[0],e[1]-1)] = 0.1
-                    self.belief[(e[0],e[1]+1)] = 0.1
-
-        # Update records for evidence and action
+        # Update records for transitions and action
+        e = state.pacman
         if len(self.record) > 0:
             self.update(self.record[-1][0], self.record[-1][1], e)
         self.record.append((e,a))
         return action
-
