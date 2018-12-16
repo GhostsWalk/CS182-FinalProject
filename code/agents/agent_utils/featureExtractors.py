@@ -46,7 +46,7 @@ class GhostFeatureExtractor(FeatureExtractor):
         curr_dists = [manhattanDistance((x, y), other) for other in other_ghosts]
         future_dists = [manhattanDistance((next_x, next_y), other) for other in other_ghosts]
 
-        if min(future_dists) < min(curr_dists):
+        if len(other_ghosts) >= 1 and min(future_dists) < min(curr_dists):
             features["get_closer_to_other_ghosts"] = 1
         else:
             features["get_closer_to_other_ghosts"] = 0
