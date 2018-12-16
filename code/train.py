@@ -64,15 +64,15 @@ def train(layout, pacman, ghosts, numTraining, catchExceotions=False, timeout=30
     return games
 
 
-def load_ghosts(options):
+def load_ghosts(options, filename):
     ghostType = loadAgent(options.ghost, nographics=False)
     ghostOpts = parseAgentArgs(options.ghostArgs)
     ghosts = [
         ghostType(index=i + 1, numTraining=options.numTraining, **ghostOpts)
         for i in range(options.numGhosts)]
     for ghost in ghosts:
-        ghost.load_from_file(filename)
         ghost.turnoff_training()
+        ghost.load_from_file(filename)
     return ghosts
 
 
@@ -125,5 +125,8 @@ if __name__ == '__main__':
         ghost.save_to_file(filename)
         print("Agent successfully saved to {}".format(filename))
 
-        ghosts = load_ghosts(options)
+        ghosts = load_ghosts(options, filename)
+        for ghost in ghosts:
+            if hasattr(ghost, 'getWeights'):
+                print(ghost.getWeights())
         games = run_games(args, ghosts)
