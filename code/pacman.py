@@ -505,7 +505,7 @@ def get_default_parser():
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default(
                           'the agent TYPE in the pacmanAgents module to use'),
-                      metavar='TYPE', default='KeyboardAgent')
+                      metavar='TYPE', default='RandomAgent')
     parser.add_option('-t', '--textGraphics', action='store_true',
                       dest='textGraphics',
                       help='Display output as text only', default=False)

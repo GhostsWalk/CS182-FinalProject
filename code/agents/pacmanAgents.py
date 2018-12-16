@@ -34,6 +34,12 @@ class LeftTurnAgent(game.Agent):
         return Directions.STOP
 
 
+class RandomAgent(game.Agent):
+    def getAction(self, state):
+        legal_actions = state.getLegalPacmanActions()
+        return random.choice(legal_actions)
+
+
 class GreedyAgent(Agent):
     def __init__(self, evalFn="scoreEvaluation", **kwargs):
         self.evaluationFunction = util.lookup(evalFn, globals())

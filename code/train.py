@@ -111,8 +111,10 @@ if __name__ == '__main__':
     plt.title(ghost_class_name)
     plt.xlabel("training episodes")
     plt.ylabel("running average scores")
-    plt.savefig("plots/{}-{}-{}".format(ghost_class_name, options.layout,
-                                        args["numTraining"]))
+    figname = "plots/{}-{}-{}".format(ghost_class_name, options.layout,
+                                      args["numTraining"])
+    plt.savefig(figname)
+    print("Plot successfully saved to {}".format(figname))
     plt.show()
 
     ans = raw_input("Save the agent? (y/n) ")
@@ -121,7 +123,7 @@ if __name__ == '__main__':
         filename = "trained/{}-{}-{}-partialObs_{}.pkl".format(ghost_class_name, options.layout,
                                args["numTraining"], ghost.partialObs)
         ghost.save_to_file(filename)
-        print("Successfully saved to {}".format(filename))
+        print("Agent successfully saved to {}".format(filename))
 
         ghosts = load_ghosts(options)
         games = run_games(args, ghosts)

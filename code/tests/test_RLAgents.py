@@ -8,7 +8,7 @@ from pacman import loadAgent
 
 class TestRLAgents:
     def testExactQLearning(self):
-        argv = ['--pacman=GreedyAgent', '--ghosts=ExactQLearningGhost',
+        argv = ['--pacman=RandomAgent', '--ghosts=ExactQLearningGhost',
                 '--ghostArgs', 'partialObs=False', '-l', 'smallGrid',
                 '--numTraining=500']
         args, options = read_command(argv)
