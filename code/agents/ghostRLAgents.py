@@ -1,31 +1,179 @@
 import time, random
 from ghostAgents import GhostAgent
+from agent_utils.featureExtractors import *
 import util
+import cPickle as pickle
 
 
-class QLearningGhost(GhostAgent):
-    def __init__(self, index, actionFn = None, numTraining=100, epsilon=0.5, alpha=0.5, gamma=1, partialObs=True):
+class AbstractQLearningGhost(GhostAgent):
+    def __init__(self, index, actionFn=None, numTraining=100, alpha=0.5, gamma=0.9, partialObs=True, epsilon=0.9, exploration="False"):
         """
-        :param actionFn: Function which takes a state and returns the list of legal actions
-        :param numTraining: number of training episodes, i.e. no learning after these many episodes
-        :param epsilon: exploration rate
-        :param alpha: learning rate
-        :param gamma: discount factor
+        :param index: int, agent index
+        :param actionFn: func, function to get list of legal actions
+        :param numTraining: int, number of training episodes
+        :param alpha: float, learning rate
+        :param gamma: float, discount factor
+        :param partialObs: bool, whether the agent takes partial observation
         """
         self.index = index
         if actionFn is None:
             actionFn = lambda state: state.getLegalActions(agentIndex=index)
         self.actionFn = actionFn
-        self.episodesSoFar = 0
         self.accumTrainRewards = 0.0
         self.accumTestRewards = 0.0
         self.numTraining = int(numTraining)
-        self.epsilon = float(epsilon)
         self.alpha = float(alpha)
-        self.discount = float(gamma)
-        self.partialObs = partialObs
+        self.gamma = float(gamma)
 
-        self.qValues = util.Counter()
+        def string_to_bool(s):
+            if type(s) == str:
+                return s == "True"
+            return s
+        self.partialObs = string_to_bool(partialObs)
+
+        self.epsilon = float(epsilon)
+        self.exploration = string_to_bool(exploration)
+        if self.epsilon == 0 and not self.exploration:
+            raise Exception("Need either epsilon-greedy or exploration function for exploration")
+        if self.epsilon != 0 and self.exploration:
+            raise Exception("Cannot have both epsilon-greedy and exploration function for exploration")
+        self.N = util.Counter()
+
+        self.q_values = util.Counter()  # Map (state, action) to value
+
+        # Episode records
+        self.lastState = None
+        self.lastAction = None
+        self.episodeRewards = 0.0
+        self.episodesSoFar = 0
+
+    def save_to_file(self, filename):
+        data = self.export_data()
+        with open(filename, 'wb') as f:
+            pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
+    def load_from_file(self, filename):
+        with open(filename, 'rb') as f:
+            data = pickle.load(f)
+        self.load_from_data(data)
+
+    def load_from_data(self, data):
+        for key, val in data.items():
+            setattr(self, key, val)
+
+    def computeActionFromQValues(self, state):
+        """
+        :param state: GameState
+        :return: Directions, action that the agent would take
+        """
+        legal_actions = self.actionFn(state)
+        if len(legal_actions) == 0:
+            return None
+        best_action = None
+        best_value = None
+        for action in legal_actions:
+            value = self.getQValue(state, action)
+            if best_value is None or value > best_value:
+                best_action = action
+                best_value = value
+        return best_action
+
+    def getValue(self, state):
+        """ Get value of state, by taking max of q_values over actions
+        :param state: GameState
+        :return: numeric
+        """
+        legal_actions = self.actionFn(state)
+        if len(legal_actions) == 0:
+            return 0
+        best_value = None
+        for action in legal_actions:
+            value = self.getQValue(state, action)
+            if self.exploration:
+                K = 1000
+                value += K/(self.N[(state, action)] + 1)
+            if best_value is None or value > best_value:
+                best_value = value
+        return best_value
+
+    def observeTransition(self, state, action, next_state, reward):
+        """ Observe a sample of state, action -> new_state transition, to update q value
+        :param state: GameState
+        :param action: Directions
+        :param next_state: GameState
+        :param reward: numeric
+        :return:
+        """
+        self.episodeRewards += reward
+        self.updateQValue(state, action, next_state, reward)
+        self.N[(state, action)] += 1
+
+    def observationFunction(self, state):
+        """
+           This is where we ended up after our last action.
+           The simulation should somehow ensure this is called
+        """
+
+        if self.partialObs:
+            obs = state.obs(self.index)
+        else:
+            obs = state.deepCopy()
+        if self.lastState is not None:
+            reward = self.getReward(state)
+            self.observeTransition(self.lastState, self.lastAction, obs, reward)
+        return obs
+
+    def registerInitialState(self, state):
+        self.startEpisode()
+        if self.episodesSoFar == 0:
+            print("Beginning %d episodes of Training" % self.numTraining)
+
+    def final(self, state):
+        """ Called by Pacman game at the terminal state
+        :param state: GameState
+        """
+        self.observationFunction(state)
+        self.stopEpisode()
+
+        if 'episodeStartTime' not in self.__dict__:
+            self.episodeStartTime = time.time()
+        if 'lastWindowAccumRewards' not in self.__dict__:
+            self.lastWindowAccumRewards = 0.0
+        self.lastWindowAccumRewards += -state.getScore()  # Total reward of an episode
+
+        NUM_EPS_UPDATE = 100
+        if self.episodesSoFar % NUM_EPS_UPDATE == 0:
+            print('Reinforcement Learning Status for agent {}: '.format(self.index))
+            windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
+            if self.episodesSoFar <= self.numTraining:
+                # Report training
+                trainAvg = self.accumTrainRewards / float(self.episodesSoFar)
+                print("\tCompleted %d out of %d training episodes" % (
+                    self.episodesSoFar, self.numTraining))
+                print("\tAverage Rewards over all training %.2f" % trainAvg)
+            else:
+                # Report testing
+                test_episodes = self.episodesSoFar-self.numTraining
+                testAvg = float(self.accumTestRewards) / test_episodes
+                print("\tCompleted %d test episodes" % test_episodes)
+                print("\tAverage Rewards over testing: %.2f" % testAvg)
+            print('\tAverage Rewards for last %d episodes: %.2f' % (
+                NUM_EPS_UPDATE, windowAvg))
+            print('\tEpisode took %.2f seconds' % (
+                    time.time() - self.episodeStartTime))
+            self.lastWindowAccumRewards = 0.0
+            self.episodeStartTime = time.time()
+
+        if self.episodesSoFar == self.numTraining:
+            msg = "Training Done"
+            print('%s\n%s' % (msg,'-' * len(msg)))
+
+    def getReward(self, state):
+        """ Get reward for ghost agent
+        :param state: GameState
+        :return: reward, numeric
+        """
+        return -(state.getScore() - self.lastState.getScore())
 
     def startEpisode(self):
         """
@@ -36,18 +184,17 @@ class QLearningGhost(GhostAgent):
         self.episodeRewards = 0.0
 
     def stopEpisode(self):
-        """
-            Called by environment when episode is done
-        """
         if self.episodesSoFar < self.numTraining:
+            # Still in training
             self.accumTrainRewards += self.episodeRewards
         else:
+            # Test
             self.accumTestRewards += self.episodeRewards
         self.episodesSoFar += 1
+        self.epsilon *= 0.99
         if self.episodesSoFar >= self.numTraining:
-            # Take off the training wheels
             self.epsilon = 0.0  # no exploration
-            self.alpha = 0.0  # no learning
+            self.alpha = 0.0  # Stop q_value update
 
     def getLegalActions(self, state):
         """
@@ -56,143 +203,6 @@ class QLearningGhost(GhostAgent):
           obtain legal actions for a state
         """
         return self.actionFn(state)
-
-    def observeTransition(self, state, action, nextState, deltaReward):
-        """
-            Called by environment to inform agent that a transition has
-            been observed. This will result in a call to self.update
-            on the same arguments
-
-            NOTE: Do *not* override or call this function
-        """
-        self.episodeRewards += deltaReward
-        self.update(state, action, nextState, deltaReward)
-
-    def observationFunction(self, state):
-        """
-            This is where we ended up after our last action.
-            The simulation should somehow ensure this is called
-        """
-        if self.partialObs:
-            obs = state.obs(self.index)
-        else:
-            obs = state.deepCopy()
-        if not self.lastState is None:
-            reward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
-            self.observeTransition(self.lastState, self.lastAction, obs, reward)
-        return obs
-
-    def registerInitialState(self, state):
-        self.startEpisode()
-        if self.episodesSoFar == 0:
-            print 'Beginning %d episodes of Training' % self.numTraining
-
-    def final(self, state):
-        """
-          Called by Pacman game at the terminal state
-        """
-        deltaReward = -(state.getScore() - self.lastState.getScore()) # Ghost score is the reverse of Pacman's
-        # print("reward {}".format(deltaReward))
-        if self.partialObs:
-            obs = state.obs(self.index)
-        else:
-            obs = state.deepCopy()
-        self.observeTransition(self.lastState, self.lastAction, obs, deltaReward)
-        self.stopEpisode()
-
-        # Make sure we have this var
-        if not 'episodeStartTime' in self.__dict__:
-            self.episodeStartTime = time.time()
-        if not 'lastWindowAccumRewards' in self.__dict__:
-            self.lastWindowAccumRewards = 0.0
-        self.lastWindowAccumRewards += -state.getScore()
-
-        NUM_EPS_UPDATE = 100
-        if self.episodesSoFar % NUM_EPS_UPDATE == 0:
-            print 'Reinforcement Learning Status for agent {}: '.format(self.index)
-            windowAvg = self.lastWindowAccumRewards / float(NUM_EPS_UPDATE)
-            if self.episodesSoFar <= self.numTraining:
-                trainAvg = self.accumTrainRewards / float(self.episodesSoFar)
-                print '\tCompleted %d out of %d training episodes' % (
-                       self.episodesSoFar,self.numTraining)
-                print '\tAverage Rewards over all training: %.2f' % (
-                        trainAvg)
-            else:
-                testAvg = float(self.accumTestRewards) / (self.episodesSoFar - self.numTraining)
-                print '\tCompleted %d test episodes' % (self.episodesSoFar - self.numTraining)
-                print '\tAverage Rewards over testing: %.2f' % testAvg
-            print '\tAverage Rewards for last %d episodes: %.2f'  % (
-                    NUM_EPS_UPDATE,windowAvg)
-            print '\tEpisode took %.2f seconds' % (time.time() - self.episodeStartTime)
-            self.lastWindowAccumRewards = 0.0
-            self.episodeStartTime = time.time()
-
-        if self.episodesSoFar == self.numTraining:
-            msg = 'Training Done (turning off epsilon and alpha)'
-            print '%s\n%s' % (msg,'-' * len(msg))
-
-        # print("q values: {}".format(self.qValues.values()))
-        # print("qvalues: {}".format(self.qValues.keys()))
-
-    ###############################
-    # Q-learning Specific Updates #
-    ###############################
-
-    def update(self, state, action, nextState, reward):
-        """
-          The parent class calls this to observe a
-          state = action => nextState and reward transition.
-          You should do your Q-Value update here
-
-          NOTE: You should never call this function,
-          it will be called on your behalf
-        """
-        next_value = self.computeValueFromQValues(nextState)
-        value = self.getQValue(state, action)
-        self.qValues[(state, action)] += self.alpha * (reward +
-                                                        self.discount *
-                                                        next_value - value)
-
-    def getQValue(self, state, action):
-        """
-          Should return Q(state,action) = w * featureVector
-          where * is the dotProduct operator
-        """
-        return self.qValues[(state, action)]
-
-    def computeValueFromQValues(self, state):
-        """
-          Returns max_action Q(state,action)
-          where the max is over legal actions.  Note that if
-          there are no legal actions, which is the case at the
-          terminal state, you should return a value of 0.0.
-        """
-        actions = self.getLegalActions(state)
-        if len(actions) == 0:
-            return 0.0
-        best_value = max([self.getQValue(state, action) for action in
-                          actions])
-        return best_value
-
-    def computeActionFromQValues(self, state):
-        """
-          Compute the best action to take in a state.  Note that if there
-          are no legal actions, which is the case at the terminal state,
-          you should return None.
-        """
-        actions = list(self.getLegalActions(state))
-        if len(actions) == 0:
-            return None
-
-        random.shuffle(actions)
-        best_action = None
-        best_value = None
-        for action in actions:
-            value = self.getQValue(state, action)
-            if best_value is None or value > best_value:
-                best_action = action
-                best_value = value
-        return best_action
 
     def pickAction(self, state):
         """
@@ -206,12 +216,12 @@ class QLearningGhost(GhostAgent):
           HINT: To pick randomly from a list, use random.choice(list)
         """
         # Pick Action
-        legalActions = self.getLegalActions(state)
-        if len(legalActions) == 0:
+        legal_actions = self.getLegalActions(state)
+        if len(legal_actions) == 0:
             return None
 
         if util.flipCoin(self.epsilon):
-            return random.choice(legalActions)
+            return random.choice(legal_actions)
         return self.computeActionFromQValues(state)
 
     def getAction(self, state):
@@ -220,9 +230,77 @@ class QLearningGhost(GhostAgent):
             record the action taken for next next reward computation.
         """
         action = self.pickAction(state)
-        self.recordAction(state, action)
+        self.record(state, action)
         return action
 
-    def recordAction(self, state, action):
+    def record(self, state, action):
+        """ Record (state, action) pair of last run, for updating q value
+        :param state: GameState
+        :param action: Directions
+        """
         self.lastState = state
         self.lastAction = action
+
+    def turnoff_training(self):
+        self.epsilon = 0
+        self.alpha = 0
+
+
+class ApproxQLearningGhost(AbstractQLearningGhost):
+    def __init__(self, feature_extractor="GhostFeatureExtractor", **kwargs):
+        self.feature_extractor = util.lookup(feature_extractor, globals())()
+        self.weights = util.Counter()
+        super(ApproxQLearningGhost, self).__init__(**kwargs)
+
+    def export_data(self):
+        data = {
+            "alpha": self.alpha,
+            "gamma": self.gamma,
+            "partialObs": self.partialObs,
+            "q_values": self.q_values,
+            "weights": self.weights
+        }
+        return data
+
+    def getWeights(self):
+        """
+        :return: weights for computing approximate q value
+        """
+        return self.weights
+
+    def getQValue(self, state, action):
+        """
+        :param state: GameState
+        :param action: Directions
+        :return: approximate Q value
+        """
+        features = self.feature_extractor.get_features(state, action, self.index)
+        return self.weights * features
+
+    def updateQValue(self, state, action, next_state, reward):
+        next_state_value = self.getValue(next_state)
+        current_q_value = self.getQValue(state, action)
+        difference = reward + self.gamma * next_state_value - current_q_value
+        features = self.feature_extractor.get_features(state, action, self.index)
+        for key in features.keys():
+            self.weights[key] += self.alpha * difference * features[key]
+
+
+class ExactQLearningGhost(AbstractQLearningGhost):
+    def export_data(self):
+        data = {
+            "alpha": self.alpha,
+            "gamma": self.gamma,
+            "partialObs": self.partialObs,
+            "q_values": self.q_values
+        }
+        return data
+
+    def getQValue(self, state, action):
+        return self.q_values[(state, action)]
+
+    def updateQValue(self, state, action, next_state, reward):
+        next_state_value = self.getValue(next_state)
+        current_q_value = self.getQValue(state, action)
+        self.q_values[(state, action)] += self.alpha * (
+                reward + self.gamma * next_state_value - current_q_value)

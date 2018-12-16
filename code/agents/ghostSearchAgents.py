@@ -1,6 +1,5 @@
 from ghostAgents import GhostAgent
-from agent_util import scoreEvaluationFunction
-from agent_util import evaluationFunctionWithDistance
+from agent_utils.evaluationFunctions import *
 import util
 
 

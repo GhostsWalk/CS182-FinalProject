@@ -267,7 +267,9 @@ class GameState:
 
 SCARED_TIME = 40    # Moves ghosts are scared
 COLLISION_TOLERANCE = 0.7 # How close ghosts must be to Pacman to kill
-TIME_PENALTY = 1 # Number of points lost each round
+# TIME_PENALTY = 1 # Number of points lost each round
+TIME_PENALTY = -1
+
 
 class ClassicGameRules:
     """
@@ -481,59 +483,85 @@ def parseAgentArgs(str):
         opts[key] = val
     return opts
 
+
+def get_default_parser():
+    from optparse import OptionParser
+    usageStr = """
+        USAGE:      python pacman.py <options>
+        EXAMPLES:   (1) python pacman.py
+                        - starts an interactive game
+                    (2) python pacman.py --layout smallClassic --zoom 2
+                    OR  python pacman.py -l smallClassic -z 2
+                        - starts an interactive game on a smaller board, zoomed in
+        """
+    parser = OptionParser(usageStr)
+    parser.add_option('-n', '--numGames', dest='numGames', type='int',
+                      help=default('the number of GAMES to play'),
+                      metavar='GAMES', default=1)
+    parser.add_option('-l', '--layout', dest='layout',
+                      help=default(
+                          'the LAYOUT_FILE from which to load the map layout'),
+                      metavar='LAYOUT_FILE', default='mediumClassic')
+    parser.add_option('-p', '--pacman', dest='pacman',
+                      help=default(
+                          'the agent TYPE in the pacmanAgents module to use'),
+                      metavar='TYPE', default='KeyboardAgent')
+    parser.add_option('-t', '--textGraphics', action='store_true',
+                      dest='textGraphics',
+                      help='Display output as text only', default=False)
+    parser.add_option('-q', '--quietTextGraphics', action='store_true',
+                      dest='quietGraphics',
+                      help='Generate minimal output and no graphics',
+                      default=False)
+    parser.add_option('-g', '--ghosts', dest='ghost',
+                      help=default(
+                          'the ghost agent TYPE in the ghostAgents module to use'),
+                      metavar='TYPE', default='RandomGhost')
+    parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
+                      help=default('The maximum number of ghosts to use'),
+                      default=4)
+    parser.add_option('-z', '--zoom', type='float', dest='zoom',
+                      help=default('Zoom the size of the graphics window'),
+                      default=1.0)
+    parser.add_option('--fixRandomSeed', action='store_true',
+                      dest='fixRandomSeed',
+                      help='Fixes the random seed to always play the same game',
+                      default=False)
+    parser.add_option('-r', '--recordActions', action='store_true',
+                      dest='record',
+                      help='Writes game histories to a file (named by the time they were played)',
+                      default=False)
+    parser.add_option('--replay', dest='gameToReplay',
+                      help='A recorded game file (pickle) to replay',
+                      default=None)
+    parser.add_option('-a', '--agentArgs', dest='agentArgs',
+                      help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
+    parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
+                      help=default(
+                          'How many episodes are training (suppresses output)'),
+                      default=0)
+    parser.add_option('--frameTime', dest='frameTime', type='float',
+                      help=default(
+                          'Time to delay between frames; <0 means keyboard'),
+                      default=0.1)
+    parser.add_option('-c', '--catchExceptions', action='store_true',
+                      dest='catchExceptions',
+                      help='Turns on exception handling and timeouts during games',
+                      default=False)
+    parser.add_option('--timeout', dest='timeout', type='int',
+                      help=default(
+                          'Maximum length of time an agent can spend computing in a single game'),
+                      default=30)
+    parser.add_option('--ghostArgs', dest='ghostArgs',
+                      help='Comma separated values sent to ghost. e.g. "opt1=val1,opt2,opt3=val3"')
+    return parser
+
+
 def readCommand( argv ):
     """
     Processes the command used to run pacman from the command line.
     """
-    from optparse import OptionParser
-    usageStr = """
-    USAGE:      python pacman.py <options>
-    EXAMPLES:   (1) python pacman.py
-                    - starts an interactive game
-                (2) python pacman.py --layout smallClassic --zoom 2
-                OR  python pacman.py -l smallClassic -z 2
-                    - starts an interactive game on a smaller board, zoomed in
-    """
-    parser = OptionParser(usageStr)
-
-    parser.add_option('-n', '--numGames', dest='numGames', type='int',
-                      help=default('the number of GAMES to play'), metavar='GAMES', default=1)
-    parser.add_option('-l', '--layout', dest='layout',
-                      help=default('the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumClassic')
-    parser.add_option('-p', '--pacman', dest='pacman',
-                      help=default('the agent TYPE in the pacmanAgents module to use'),
-                      metavar='TYPE', default='KeyboardAgent')
-    parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
-                      help='Display output as text only', default=False)
-    parser.add_option('-q', '--quietTextGraphics', action='store_true', dest='quietGraphics',
-                      help='Generate minimal output and no graphics', default=False)
-    parser.add_option('-g', '--ghosts', dest='ghost',
-                      help=default('the ghost agent TYPE in the ghostAgents module to use'),
-                      metavar = 'TYPE', default='RandomGhost')
-    parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
-                      help=default('The maximum number of ghosts to use'), default=4)
-    parser.add_option('-z', '--zoom', type='float', dest='zoom',
-                      help=default('Zoom the size of the graphics window'), default=1.0)
-    parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
-                      help='Fixes the random seed to always play the same game', default=False)
-    parser.add_option('-r', '--recordActions', action='store_true', dest='record',
-                      help='Writes game histories to a file (named by the time they were played)', default=False)
-    parser.add_option('--replay', dest='gameToReplay',
-                      help='A recorded game file (pickle) to replay', default=None)
-    parser.add_option('-a','--agentArgs',dest='agentArgs',
-                      help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
-    parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
-                      help=default('How many episodes are training (suppresses output)'), default=0)
-    parser.add_option('--frameTime', dest='frameTime', type='float',
-                      help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
-    parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
-                      help='Turns on exception handling and timeouts during games', default=False)
-    parser.add_option('--timeout', dest='timeout', type='int',
-                      help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
-    parser.add_option('--ghostArgs', dest='ghostArgs',
-                      help='Comma separated values sent to ghost. e.g. "opt1=val1,opt2,opt3=val3"')
-
+    parser = get_default_parser()
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:

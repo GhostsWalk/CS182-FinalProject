@@ -19,7 +19,7 @@ from util import manhattanDistance
 import util
 
 
-class GhostAgent( Agent ):
+class GhostAgent( Agent, object):
     def __init__( self, index):
         self.index = index
 

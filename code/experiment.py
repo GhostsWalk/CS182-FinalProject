@@ -5,11 +5,7 @@ import numpy as np
 
 import layout
 import textDisplay
-from pacman import loadAgent, ClassicGameRules
-
-
-def default(str):
-    return str + ' [Default: %default]'
+from pacman import loadAgent, ClassicGameRules, parseAgentArgs, default
 
 
 def read_command(argv):
@@ -25,6 +21,8 @@ def read_command(argv):
     parser.add_option('-p', '--pacman', dest='pacman',
                       help = default('the agent TYPE in the pacmanAgents module to use'),
                       metavar = 'TYPE', default = 'KeyboardAgent')
+    parser.add_option('-a', '--agentArgs', dest='agentArgs',
+                      help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
     parser.add_option('-g', '--ghosts', dest='ghost',
                       help=default('the ghost agent TYPE in the ghostAgents module to use'),
                       metavar='TYPE', default='QLearningGhost')
@@ -38,6 +36,8 @@ def read_command(argv):
                       dest='fixRandomSeed',
                       help='Fixes the random seed to always play the same game',
                       default=False)
+    parser.add_option('--ghostArgs', dest='ghostArgs',
+                      help='Comma separated values sent to ghost. e.g. "opt1=val1,opt2,opt3=val3"')
 
     options, otherjunk = parser.parse_args(argv)
     if len(otherjunk) != 0:
@@ -55,12 +55,14 @@ def read_command(argv):
 
     # Initialize a Pacman agent
     pacmanType = loadAgent(options.pacman, nographics=False)
-    pacman = pacmanType(depth=2)  # Instantiate Pacman with depth=2 # To Do: allow depth as an argument
+    pacmanOpts = parseAgentArgs(options.agentArgs)
+    pacman = pacmanType(**pacmanOpts)  # Instantiate Pacman with depth=2 # To Do: allow depth as an argument
     args['pacman'] = pacman
 
     # Initialize Ghost agents
     ghostType = loadAgent(options.ghost, nographics=False)
-    args['ghosts'] = [ghostType(index=i + 1, numTraining=options.numTraining) for i in range(options.numGhosts)]
+    ghostOpts = parseAgentArgs(options.ghostArgs)
+    args['ghosts'] = [ghostType(index=i + 1, numTraining=options.numTraining, **ghostOpts) for i in range(options.numGhosts)]
 
     # Set number of training episodes for experiment
     args['numTraining'] = options.numTraining

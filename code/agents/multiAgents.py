@@ -12,11 +12,9 @@
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
 
-from util import manhattanDistance
-from game import Directions
 import random, util
 from game import Agent
-from agents.agent_util import evaluationFunctionWithDistance, scoreEvaluationFunction
+from agent_utils.evaluationFunctions import *
 
 
 class ReflexAgent(Agent):
