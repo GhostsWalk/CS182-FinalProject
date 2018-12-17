@@ -27,6 +27,7 @@ class GhostFeatureExtractor(FeatureExtractor):
         - distance to pacman, normalized by map size
         """
         features = util.Counter()
+        features["bias"] = 1.0
 
         x, y = state.getGhostPosition(agent_index)
         dx, dy = Actions.directionToVector(action)
@@ -37,9 +38,9 @@ class GhostFeatureExtractor(FeatureExtractor):
         future_distance = manhattanDistance((next_x, next_y), (pacman_x, pacman_y))
 
         if future_distance < current_distance:
-            features["get_closer_to_pacman"] = 1
+            features["get_closer_to_pacman"] = 1.0
         else:
-            features["get_closer_to_pacman"] = 0
+            features["get_closer_to_pacman"] = 0.0
 
         other_ghosts = state.getGhostPositions()
         other_ghosts = other_ghosts[:agent_index-1] + other_ghosts[agent_index:]
@@ -47,16 +48,26 @@ class GhostFeatureExtractor(FeatureExtractor):
         future_dists = [manhattanDistance((next_x, next_y), other) for other in other_ghosts]
 
         if len(other_ghosts) >= 1 and min(future_dists) < min(curr_dists):
-            features["get_closer_to_other_ghosts"] = 1
+            features["get_closer_to_other_ghosts"] = 1.0
         else:
-            features["get_closer_to_other_ghosts"] = 0
+            features["get_closer_to_other_ghosts"] = 0.0
+
+        walls = state.getWalls()
+        num_walls = 0
+        inc_x = 1 if pacman_x > next_x else -1
+        inc_y = 1 if pacman_y > next_y else -1
+        for i in range(next_x+1, pacman_x, inc_x):
+            for j in range(next_y+1, pacman_y, inc_y):
+                if walls[i][j]:
+                    num_walls += 1
+        features["walls"] = num_walls
 
         # walls = state.getWalls()
         # features['dist'] = float(dist) / (walls.width * walls.height)
         #
         # features['horizontal'] = next_x-pacman_x / (walls.width * walls.height)
         # features['vertical'] = next_y-pacman_y / (walls.width * walls.height)
-        # features.divideAll(10.0)
+        features.divideAll(10.0)
         return features
 
 

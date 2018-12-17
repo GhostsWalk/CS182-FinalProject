@@ -2,7 +2,7 @@ import random
 
 class Observation:
     '''
-    Class to model partial observation for agents
+    Class to model partial observation for agents (only used for ghosts)
     '''
     def __init__(self, state, agentIndex, maxDist=2):
         '''
@@ -15,31 +15,44 @@ class Observation:
             else state.getGhostPosition(agentIndex)
 
         pacmanPos = state.getPacmanPosition()
-        self.pacman = self.relativePos(pacmanPos) # if self.withinDistance(pacmanPos) else None
-        if self.pacman != None:
+
+        def noisy_relative_pacman(ghost_pos, pacman_pos):
+            pacman = self.relativePos(ghost_pos, pacman_pos)
             p = random.random()
             if (p < 0.1):
-                self.pacman = (self.pacman[0] + 1, self.pacman[1])
+                pacman = (pacman[0] + 1, pacman[1])
             elif (p < 0.2):
-                self.pacman = (self.pacman[0] - 1, self.pacman[1])
+                pacman = (pacman[0] - 1, pacman[1])
             elif(p < 0.3):
-                self.pacman = (self.pacman[0], self.pacman[1] + 1)
+                pacman = (pacman[0], pacman[1] + 1)
             elif(p < 0.4):
-                self.pacman = (self.pacman[0], self.pacman[1] - 1)
-        self.ghosts = set()
-        for pos in state.getGhostPositions():
-            if self.withinDistance(pos):
-                self.ghosts.add(self.relativePos(pos))
+                pacman = (pacman[0], pacman[1] - 1)
+            return pacman
 
-        self.capsules = set()
-        for capsule in state.getCapsules():
-            if self.withinDistance(capsule):
-                self.capsules.add(self.relativePos(capsule))
+        self.pacman = noisy_relative_pacman(self.pos, pacmanPos)
 
-        self.foods = set()
-        for food in state.getFood().asList():
-            if self.withinDistance(food):
-                self.foods.add(self.relativePos(food))
+        self.ghosts = []
+        self.ghosts_to_pacman = []
+        for ind, other_pos in enumerate(state.getGhostPositions()):
+            if ind != agentIndex-1:
+                self.ghosts.append(self.relativePos(self.pos, other_pos))
+                self.ghosts_to_pacman.append(noisy_relative_pacman(other_pos, pacmanPos))
+
+        # for pos in state.getGhostPositions():
+        #     if self.withinDistance(pos):
+        #         self.ghosts.add(self.relativePos(pos))
+
+
+
+        # self.capsules = set()
+        # for capsule in state.getCapsules():
+        #     if self.withinDistance(capsule):
+        #         self.capsules.add(self.relativePos(capsule))
+        #
+        # self.foods = set()
+        # for food in state.getFood().asList():
+        #     if self.withinDistance(food):
+        #         self.foods.add(self.relativePos(food))
 
         self.state = state.deepCopy()
         self.index = agentIndex
@@ -48,8 +61,8 @@ class Observation:
         dist = self.maxDist
         return abs(self.pos[0] - pos2[0]) <= dist and abs(self.pos[1] - pos2[1]) <= dist
 
-    def relativePos(self, pos2):
-        return pos2[0]-self.pos[0], pos2[1]-self.pos[1]
+    def relativePos(self, pos1, pos2):
+        return pos2[0]-pos1[0], pos2[1]-pos1[1]
 
     ############################################
     # Functions for compatibility with dicts
@@ -88,3 +101,4 @@ class Observation:
 
     def __repr__(self):
         return str(self)
+
