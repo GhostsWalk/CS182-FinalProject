@@ -29,6 +29,5 @@ def read_command(argv):
 
 if __name__ == "__main__":
     args, options = read_command(sys.argv[1:])
-    ghosts = load_ghosts(options)
-
+    ghosts = load_ghosts(options, options.filename)
     run_games(args, ghosts)

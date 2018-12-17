@@ -33,9 +33,23 @@ class GhostFeatureExtractor(FeatureExtractor):
         next_x, next_y = int(x+dx), int(y+dy)
 
         pacman_x, pacman_y = state.getPacmanPosition()
-        dist = manhattanDistance((next_x, next_y), (pacman_x, pacman_y))
-        if dist == 0:
-            features['hit'] = 1
+        current_distance = manhattanDistance((x, y), (pacman_x, pacman_y))
+        future_distance = manhattanDistance((next_x, next_y), (pacman_x, pacman_y))
+
+        if future_distance < current_distance:
+            features["get_closer_to_pacman"] = 1
+        else:
+            features["get_closer_to_pacman"] = 0
+
+        other_ghosts = state.getGhostPositions()
+        other_ghosts = other_ghosts[:agent_index-1] + other_ghosts[agent_index:]
+        curr_dists = [manhattanDistance((x, y), other) for other in other_ghosts]
+        future_dists = [manhattanDistance((next_x, next_y), other) for other in other_ghosts]
+
+        if len(other_ghosts) >= 1 and min(future_dists) < min(curr_dists):
+            features["get_closer_to_other_ghosts"] = 1
+        else:
+            features["get_closer_to_other_ghosts"] = 0
 
         # walls = state.getWalls()
         # features['dist'] = float(dist) / (walls.width * walls.height)

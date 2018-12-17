@@ -101,3 +101,56 @@ class AlphaBetaGhost(GhostAgent):
         :return: True if end of a ply (a run for each agent)
         """
         return current_agent == num_agents-1
+
+
+class Node:
+    def __init__(self, state, action, parent):
+        self.state = state
+        self.action = action
+        self.parent = parent
+
+    def __eq__(self, other):
+        return self.state == other.state
+
+    def first_action(self):
+        node = self
+        while node.parent is not None:
+            node = node.parent
+        return node.action
+
+
+class BFSGhost(GhostAgent):
+    def __init__(self, index, **kwargs):
+        self.index = index
+
+    def getAction(self, state):
+        pacman = state.getPacmanPosition()
+        from collections import deque
+        queue = deque()
+
+        explored = set()
+        legal_actions = state.getLegalActions(self.index)
+        if len(legal_actions) == 0:
+            return None
+        else:
+            for action in legal_actions:
+                next_state = state.generateSuccessor(self.index, action)
+                node = Node(next_state, action, None)
+                queue.append(node)
+                explored.add(next_state)
+            while len(queue) > 0:
+                node = queue.popleft()
+                state = node.state
+
+                self_pos = state.getGhostPosition(self.index)
+                if self_pos == pacman:
+                    return node.first_action()
+
+                legal_actions = state.getLegalActions(self.index)
+                for action in legal_actions:
+                    next_state = state.generateSuccessor(self.index, action)
+                    if next_state not in explored:
+                        explored.add(next_state)
+                        next_node = Node(next_state, action, node)
+                        queue.append(next_node)
+        return None

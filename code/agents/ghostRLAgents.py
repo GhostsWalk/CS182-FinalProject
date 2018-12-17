@@ -4,9 +4,12 @@ from agent_utils.featureExtractors import *
 import util
 import cPickle as pickle
 
+shared_q = util.Counter()
+shared_weights = util.Counter()
+
 
 class AbstractQLearningGhost(GhostAgent):
-    def __init__(self, index, actionFn=None, numTraining=100, alpha=0.5, gamma=0.9, partialObs=True, epsilon=0.9, exploration="False"):
+    def __init__(self, index, actionFn=None, numTraining=100, alpha=0.5, gamma=0.9, partialObs=True, epsilon=0.9, exploration="False", shareQ=False):
         """
         :param index: int, agent index
         :param actionFn: func, function to get list of legal actions
@@ -30,6 +33,12 @@ class AbstractQLearningGhost(GhostAgent):
                 return s == "True"
             return s
         self.partialObs = string_to_bool(partialObs)
+        self.shareQ = string_to_bool(shareQ)
+        if self.shareQ:
+            global shared_q
+            shared_q = util.Counter()
+            global shared_weights
+            shared_weights = util.Counter()
 
         self.epsilon = float(epsilon)
         self.exploration = string_to_bool(exploration)
@@ -90,7 +99,7 @@ class AbstractQLearningGhost(GhostAgent):
         for action in legal_actions:
             value = self.getQValue(state, action)
             if self.exploration:
-                K = 1000
+                K = float(1000)
                 value += K/(self.N[(state, action)] + 1)
             if best_value is None or value > best_value:
                 best_value = value
@@ -244,6 +253,7 @@ class AbstractQLearningGhost(GhostAgent):
     def turnoff_training(self):
         self.epsilon = 0
         self.alpha = 0
+        self.shareQ = False
 
 
 class ApproxQLearningGhost(AbstractQLearningGhost):
@@ -257,8 +267,7 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
             "alpha": self.alpha,
             "gamma": self.gamma,
             "partialObs": self.partialObs,
-            "q_values": self.q_values,
-            "weights": self.weights
+            "weights": shared_weights if self.shareQ else self.weights
         }
         return data
 
@@ -266,7 +275,10 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
         """
         :return: weights for computing approximate q value
         """
-        return self.weights
+        if self.shareQ:
+            return shared_weights
+        else:
+            return self.weights
 
     def getQValue(self, state, action):
         """
@@ -275,7 +287,7 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
         :return: approximate Q value
         """
         features = self.feature_extractor.get_features(state, action, self.index)
-        return self.weights * features
+        return self.getWeights() * features
 
     def updateQValue(self, state, action, next_state, reward):
         next_state_value = self.getValue(next_state)
@@ -283,7 +295,11 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
         difference = reward + self.gamma * next_state_value - current_q_value
         features = self.feature_extractor.get_features(state, action, self.index)
         for key in features.keys():
-            self.weights[key] += self.alpha * difference * features[key]
+            update = self.alpha * difference * features[key]
+            if self.shareQ:
+                shared_weights[key] += update
+            else:
+                self.weights[key] += update
 
 
 class ExactQLearningGhost(AbstractQLearningGhost):
@@ -292,15 +308,22 @@ class ExactQLearningGhost(AbstractQLearningGhost):
             "alpha": self.alpha,
             "gamma": self.gamma,
             "partialObs": self.partialObs,
-            "q_values": self.q_values
+            "q_values": shared_q if self.shareQ else self.q_values
         }
         return data
 
     def getQValue(self, state, action):
-        return self.q_values[(state, action)]
+        if self.shareQ:
+            return shared_q[(state, action)]
+        else:
+            return self.q_values[(state, action)]
 
     def updateQValue(self, state, action, next_state, reward):
         next_state_value = self.getValue(next_state)
         current_q_value = self.getQValue(state, action)
-        self.q_values[(state, action)] += self.alpha * (
+        update = self.alpha * (
                 reward + self.gamma * next_state_value - current_q_value)
+        if self.shareQ:
+            shared_q[(state, action)] += update
+        else:
+            self.q_values[(state, action)] += update
