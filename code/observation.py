@@ -95,8 +95,7 @@ class Observation:
                "pos: {}".format(self.pos),
                "ghosts: {}".format(self.ghosts),
                "pacman: {}".format(self.pacman),
-               "foods: {}".format(self.foods),
-               "capsules: {}".format(self.capsules)]
+               "ghosts_to_pacman: {}".format(self.ghosts_to_pacman)]
         return "\n".join(out)
 
     def __repr__(self):
