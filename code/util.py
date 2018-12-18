@@ -650,3 +650,9 @@ def unmutePrint():
 
     sys.stdout = _ORIGINAL_STDOUT
     #sys.stderr = _ORIGINAL_STDERR
+
+
+def string_to_bool(s):
+    if type(s) == str:
+        return s == "True"
+    return s

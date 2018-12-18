@@ -26,6 +26,25 @@ class GhostFeatureExtractor(FeatureExtractor):
 
         - distance to pacman, normalized by map size
         """
+        if state.__class__.__name__ == "Observation":
+            pacman_x, pacman_y = state.pacman_absolute
+            state = state.state
+
+            features = util.Counter()
+            x, y = state.getGhostPosition(agent_index)
+            dx, dy = Actions.directionToVector(action)
+            next_x, next_y = int(x + dx), int(y + dy)
+            current_distance = manhattanDistance((x, y), (pacman_x, pacman_y))
+            future_distance = manhattanDistance((next_x, next_y),
+                                                (pacman_x, pacman_y))
+
+            if future_distance < current_distance:
+                features["get_closer_to_pacman"] = 1.0
+            else:
+                features["get_closer_to_pacman"] = 0.0
+            return features
+        else:
+            pacman_x, pacman_y = state.getPacmanPosition()
         features = util.Counter()
         features["bias"] = 1.0
 
@@ -33,7 +52,7 @@ class GhostFeatureExtractor(FeatureExtractor):
         dx, dy = Actions.directionToVector(action)
         next_x, next_y = int(x+dx), int(y+dy)
 
-        pacman_x, pacman_y = state.getPacmanPosition()
+
         current_distance = manhattanDistance((x, y), (pacman_x, pacman_y))
         future_distance = manhattanDistance((next_x, next_y), (pacman_x, pacman_y))
 

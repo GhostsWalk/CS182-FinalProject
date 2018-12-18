@@ -1,5 +1,6 @@
 import random
 
+
 class Observation:
     '''
     Class to model partial observation for agents (only used for ghosts)
@@ -38,6 +39,8 @@ class Observation:
                 self.ghosts.append(self.relativePos(self.pos, other_pos))
                 self.ghosts_to_pacman.append(noisy_relative_pacman(other_pos, pacmanPos))
 
+        self.pacman_absolute = noisy_relative_pacman([0, 0], pacmanPos)
+
         # for pos in state.getGhostPositions():
         #     if self.withinDistance(pos):
         #         self.ghosts.add(self.relativePos(pos))
@@ -68,13 +71,11 @@ class Observation:
     # Functions for compatibility with dicts
     ############################################
     def __eq__(self, other):
-        return self.pacman == other.pacman and self.ghosts == other.ghosts and \
-                self.capsules == other.capsules and self.foods == other.foods
+        return self.pacman == other.pacman and self.ghosts == other.ghosts \
+               and self.ghosts_to_pacman == other.ghosts_to_pacman
 
     def __hash__(self):
-        return int((hash(tuple(self.ghosts)) + 13 * hash(tuple(
-            self.foods)) + 113 * hash(tuple(self.capsules)) + 7 * hash(
-            self.pacman)) % 1048575)
+        return int((hash(tuple(self.ghosts)) + 7 * hash(self.pacman)) % 1048575)
 
     ############################################
     # Functions for retaining interfaces when

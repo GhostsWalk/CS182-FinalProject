@@ -3,6 +3,7 @@ from ghostAgents import GhostAgent
 from agent_utils.featureExtractors import *
 import util
 import cPickle as pickle
+from util import string_to_bool
 
 shared_q = util.Counter()
 shared_weights = util.Counter()
@@ -28,10 +29,6 @@ class AbstractQLearningGhost(GhostAgent):
         self.alpha = float(alpha)
         self.gamma = float(gamma)
 
-        def string_to_bool(s):
-            if type(s) == str:
-                return s == "True"
-            return s
         self.partialObs = string_to_bool(partialObs)
         self.shareQ = string_to_bool(shareQ)
         if self.shareQ:

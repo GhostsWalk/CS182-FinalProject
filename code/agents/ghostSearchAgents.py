@@ -1,6 +1,8 @@
 from ghostAgents import GhostAgent
 from agent_utils.evaluationFunctions import *
 import util
+from util import string_to_bool
+import random
 
 
 class AlphaBetaGhost(GhostAgent):
@@ -119,13 +121,21 @@ class Node:
         return node.action
 
 
+from collections import deque
+
+
 class BFSGhost(GhostAgent):
-    def __init__(self, index, **kwargs):
+    def __init__(self, index, partialObs=False, **kwargs):
         self.index = index
+        self.partialObs = string_to_bool(partialObs)
 
     def getAction(self, state):
-        pacman = state.getPacmanPosition()
-        from collections import deque
+        if self.partialObs:
+            observation = state.obs(self.index)
+            pacman = observation.pacman_absolute
+            state = observation.state
+        else:
+            pacman = state.getPacmanPosition()
         queue = deque()
 
         explored = set()
@@ -146,11 +156,11 @@ class BFSGhost(GhostAgent):
                 if self_pos == pacman:
                     return node.first_action()
 
-                legal_actions = state.getLegalActions(self.index)
-                for action in legal_actions:
+                new_legal_actions = state.getLegalActions(self.index)
+                for action in new_legal_actions:
                     next_state = state.generateSuccessor(self.index, action)
                     if next_state not in explored:
                         explored.add(next_state)
                         next_node = Node(next_state, action, node)
                         queue.append(next_node)
-        return None
+        return random.choice(legal_actions)

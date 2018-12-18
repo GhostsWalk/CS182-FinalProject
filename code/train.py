@@ -106,13 +106,14 @@ if __name__ == '__main__':
     # Compute running averages for smoothness in graph
     averages = [np.mean(scores[:i + 1]) for i in range(len(scores))]
 
-    ghost_class_name = args['ghosts'][0].__class__.__name__
+    ghost = args['ghosts'][0]
+    ghost_class_name = ghost.__class__.__name__
     plt.plot(averages)
     plt.title(ghost_class_name)
     plt.xlabel("training episodes")
     plt.ylabel("running average scores")
-    figname = "plots/{}-{}-{}".format(ghost_class_name, options.layout,
-                                      args["numTraining"])
+    figname = "plots/{}-{}-{}-partialObs_{}".format(ghost_class_name, options.layout,
+                                      args["numTraining"], ghost.partialObs)
     plt.savefig(figname)
     print("Plot successfully saved to {}".format(figname))
     plt.show()
