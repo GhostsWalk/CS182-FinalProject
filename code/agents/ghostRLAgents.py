@@ -17,7 +17,7 @@ shared_weights = util.Counter()
 
 
 class AbstractQLearningGhost(GhostAgent):
-    def __init__(self, index, actionFn=None, numTraining=100, alpha=0.5, gamma=0.9, partialObs=True, epsilon=0.9, exploration="False", shareQ=False):
+    def __init__(self, index, actionFn=None, numTraining=100, alpha=0.5, gamma=0.9, partialObs=True, epsilon=0.0, exploration="True", shareQ=True):
         """
         :param index: int, agent index
         :param actionFn: func, function to get list of legal actions

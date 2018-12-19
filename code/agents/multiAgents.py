@@ -116,7 +116,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
           gameState.getNumAgents():
             Returns the total number of agents in the game
-        """\
+        """
         num_agents = gameState.getNumAgents()
         if num_agents < 2:
             raise Exception("Number of agents cannot be less than 2")
