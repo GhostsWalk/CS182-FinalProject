@@ -4,6 +4,13 @@ from agent_utils.featureExtractors import *
 import util
 import cPickle as pickle
 from util import string_to_bool
+import numpy as np
+import tensorflow as tf 
+from tensorflow.keras import layers
+from tensorflow.keras import models
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.models import Sequential
+
 
 shared_q = util.Counter()
 shared_weights = util.Counter()
@@ -133,6 +140,14 @@ class AbstractQLearningGhost(GhostAgent):
         self.startEpisode()
         if self.episodesSoFar == 0:
             print("Beginning %d episodes of Training" % self.numTraining)
+        input_dim = 5
+        H = 25
+        model = models.Sequential()
+        model.add(layers.Dense(H, input_dim = input_dim, kernel_initializer = 'normal', activation = 'linear'))
+        model.add(layers.Dense(1, kernel_initializer = 'normal', activation = 'linear'))
+        model.compile(loss = 'mean_absolute_error', optimizer = 'adam')
+        self.model = model
+
 
     def final(self, state):
         """ Called by Pacman game at the terminal state
@@ -324,3 +339,55 @@ class ExactQLearningGhost(AbstractQLearningGhost):
             shared_q[(state, action)] += update
         else:
             self.q_values[(state, action)] += update
+
+
+class DQNGhost(AbstractQLearningGhost):
+    def export_data(self):
+        data = {
+            "alpha": self.alpha,
+            "gamma": self.gamma,
+            "partialObs": self.partialObs,
+            "weights": shared_weights if self.shareQ else self.weights
+        }
+        return data
+
+    def getQValue(self, state, action):
+        """
+        :param state: GameState
+        :param action: Directions
+        :return: approximate Q value
+        """
+        action_dict = {}
+        action_dict['East'] = 0
+        action_dict['West'] = 1
+        action_dict['North'] = 2
+        action_dict['South'] = 3
+        action_dict['Stop'] = 4
+        e = state.pacman
+        g = state.ghosts[0]
+        a = action_dict[action]
+        x = np.array([e[0],e[1],g[0],g[1],a])
+
+        model = self.model
+        return model.predict(np.array([x]))
+
+    def updateQValue(self, state, action, next_state, reward):
+        action_dict = {}
+        action_dict['East'] = 0
+        action_dict['West'] = 1
+        action_dict['North'] = 2
+        action_dict['South'] = 3
+        action_dict['Stop'] = 4
+        next_state_value = self.getValue(next_state)
+        current_q_value = self.getQValue(state, action)
+        difference = reward + self.gamma * next_state_value - current_q_value
+
+        e = state.pacman
+        g = state.ghosts[0]
+        a = action_dict[action]
+
+        x = np.array([e[0],e[1],g[0],g[1],a])
+
+        model = self.model
+        model.fit(np.array([x]), difference, verbose = 0)
+
