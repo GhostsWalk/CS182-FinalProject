@@ -140,6 +140,10 @@ class AbstractQLearningGhost(GhostAgent):
         self.startEpisode()
         if self.episodesSoFar == 0:
             print("Beginning %d episodes of Training" % self.numTraining)
+
+        """
+        Initialize the neural network
+        """
         input_dim = 5
         H = 25
         model = models.Sequential()
@@ -357,36 +361,61 @@ class DQNGhost(AbstractQLearningGhost):
         :param action: Directions
         :return: approximate Q value
         """
+
+        """
+        Dictionary which transform aciton string to number
+        """
         action_dict = {}
         action_dict['East'] = 0
         action_dict['West'] = 1
         action_dict['North'] = 2
         action_dict['South'] = 3
         action_dict['Stop'] = 4
+
+        """
+        Get state observation
+        """
         e = state.pacman
         g = state.ghosts[0]
         a = action_dict[action]
         x = np.array([e[0],e[1],g[0],g[1],a])
 
+        """
+        Predict Q-value by the neural network
+        """
         model = self.model
         return model.predict(np.array([x]))
 
     def updateQValue(self, state, action, next_state, reward):
+        """
+        Dictionary which transform aciton string to number
+        """
         action_dict = {}
         action_dict['East'] = 0
         action_dict['West'] = 1
         action_dict['North'] = 2
         action_dict['South'] = 3
         action_dict['Stop'] = 4
+
+        """
+        Get reward
+        """
         next_state_value = self.getValue(next_state)
         current_q_value = self.getQValue(state, action)
         difference = reward + self.gamma * next_state_value - current_q_value
 
+        """
+        Get state observation
+        """
         e = state.pacman
         g = state.ghosts[0]
         a = action_dict[action]
 
         x = np.array([e[0],e[1],g[0],g[1],a])
+
+        """
+        Train the model
+        """
 
         model = self.model
         model.fit(np.array([x]), difference, verbose = 0)
