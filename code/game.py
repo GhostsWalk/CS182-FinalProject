@@ -727,8 +727,5 @@ class Game:
                     self._agentCrash(agentIndex)
                     self.unmute()
                     return
-        # for agentIndex, agent in enumerate(self.agents):
-        #     if "qValues" in dir(agent):
-        #         print("agent #{}".format(agentIndex))
-        #         print(agent.qValues)
+
         self.display.finish()

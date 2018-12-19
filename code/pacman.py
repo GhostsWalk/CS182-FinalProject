@@ -485,6 +485,8 @@ def parseAgentArgs(str):
 
 
 def get_default_parser():
+    """ a parser with some default options
+    """
     from optparse import OptionParser
     usageStr = """
         USAGE:      python pacman.py <options>
@@ -585,11 +587,6 @@ def readCommand( argv ):
     pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
     args['pacman'] = pacman
 
-    # Don't display training games
-    # if 'numTrain' in agentOpts:
-    #     options.numQuiet = int(agentOpts['numTrain'])
-    #     options.numIgnore = int(agentOpts['numTrain'])
-
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
     ghostOpts = parseAgentArgs(options.ghostArgs)
@@ -626,7 +623,11 @@ def readCommand( argv ):
 
     return args
 
+
 def loadAgent(pacman, nographics):
+    """ Load the pacman given its type
+    """
+
     # Looks through all pythonPath Directories for the right module,
     pythonPathStr = os.path.expandvars("$PYTHONPATH")
     if pythonPathStr.find(';') == -1:
@@ -654,7 +655,10 @@ def loadAgent(pacman, nographics):
                 return getattr(module, pacman)
     raise Exception('The agent ' + pacman + ' is not specified in any *Agents.py.')
 
+
 def replayGame( layout, actions, display ):
+    """ Replay the game with recorded actions
+    """
     import pacmanAgents
     from code.agents import ghostAgents
     rules = ClassicGameRules()
@@ -664,7 +668,7 @@ def replayGame( layout, actions, display ):
     display.initialize(state.data)
 
     for action in actions:
-            # Execute the action
+        # Execute the action
         state = state.generateSuccessor( *action )
         # Change the display
         display.update( state.data )
@@ -675,6 +679,8 @@ def replayGame( layout, actions, display ):
 
 
 def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0, catchExceptions=False, timeout=30 ):
+    """ Run the game with the provided arguments
+    """
     import __main__
     __main__.__dict__['_display'] = display
 
@@ -684,7 +690,7 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
     for i in range( numGames ):
         beQuiet = i < numTraining
         if beQuiet:
-                # Suppress output and graphics
+            # Suppress output and graphics
             import textDisplay
             gameDisplay = textDisplay.NullGraphics()
             rules.quiet = True
@@ -742,7 +748,4 @@ if __name__ == '__main__':
     """
     args = readCommand( sys.argv[1:] ) # Get game components based on input
     runGames( **args )
-
-    # import cProfile
-    # cProfile.run("runGames( **args )")
     pass

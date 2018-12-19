@@ -18,6 +18,11 @@ class Observation:
         pacmanPos = state.getPacmanPosition()
 
         def noisy_relative_pacman(ghost_pos, pacman_pos):
+            """
+            :param ghost_pos: (x, y) tuple of a ghost position
+            :param pacman_pos: (x, y) tuple of a pacman position
+            :return: noisy relative distance between pacman and ghost
+            """
             pacman = self.relativePos(ghost_pos, pacman_pos)
             p = random.random()
             if (p < 0.1):
@@ -30,8 +35,10 @@ class Observation:
                 pacman = (pacman[0], pacman[1] - 1)
             return pacman
 
+        # Noisy relative distance to pacman
         self.pacman = noisy_relative_pacman(self.pos, pacmanPos)
 
+        # Noisy relative distance to ghosts
         self.ghosts = []
         self.ghosts_to_pacman = []
         for ind, other_pos in enumerate(state.getGhostPositions()):
@@ -39,28 +46,15 @@ class Observation:
                 self.ghosts.append(self.relativePos(self.pos, other_pos))
                 self.ghosts_to_pacman.append(noisy_relative_pacman(other_pos, pacmanPos))
 
+        # Absolute position of pacman
         self.pacman_absolute = noisy_relative_pacman([0, 0], pacmanPos)
-
-        # for pos in state.getGhostPositions():
-        #     if self.withinDistance(pos):
-        #         self.ghosts.add(self.relativePos(pos))
-
-
-
-        # self.capsules = set()
-        # for capsule in state.getCapsules():
-        #     if self.withinDistance(capsule):
-        #         self.capsules.add(self.relativePos(capsule))
-        #
-        # self.foods = set()
-        # for food in state.getFood().asList():
-        #     if self.withinDistance(food):
-        #         self.foods.add(self.relativePos(food))
 
         self.state = state.deepCopy()
         self.index = agentIndex
 
     def withinDistance(self, pos2):
+        """ test if pos2 is within max dist to self
+        """
         dist = self.maxDist
         return abs(self.pos[0] - pos2[0]) <= dist and abs(self.pos[1] - pos2[1]) <= dist
 

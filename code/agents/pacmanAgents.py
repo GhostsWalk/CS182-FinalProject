@@ -41,6 +41,8 @@ class RandomAgent(game.Agent):
 
 
 class GreedyAgent(Agent):
+    """Greedy Agent for pacman
+    """
     def __init__(self, evalFn="scoreEvaluation", **kwargs):
         self.evaluationFunction = util.lookup(evalFn, globals())
         assert self.evaluationFunction != None

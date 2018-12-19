@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 
 def load_setup(options):
+    """ Load the setup for training the agent
+    """
     layout_ = layout.getLayout(options.layout)
     if layout is None:
         raise Exception("The layout " + options.layout + " cannot be found")
@@ -29,6 +31,8 @@ def load_setup(options):
 
 
 def read_command(argv):
+    """ Read command lines arguments and return setups for the game
+    """
     parser = get_default_parser()
 
     options, otherjunk = parser.parse_args(argv)
@@ -51,8 +55,11 @@ def read_command(argv):
 
 
 def train(layout, pacman, ghosts, numTraining, catchExceotions=False, timeout=30):
+    """ Train the ghost with the specified game params
+    """
     rules = ClassicGameRules(timeout)
     games = []
+    # Run the game with numTraining times
     for i in range(numTraining):
         game_display = textDisplay.NullGraphics()
         rules.quiet = True
@@ -65,11 +72,18 @@ def train(layout, pacman, ghosts, numTraining, catchExceotions=False, timeout=30
 
 
 def load_ghosts(options, filename):
+    """ Load the ghosts from file
+    :param options: options from commandline
+    :param filename: pkl file that stores the agent
+    :return: ghosts set from pkl file
+    """
+    # Initialize ghosts given type
     ghostType = loadAgent(options.ghost, nographics=False)
     ghostOpts = parseAgentArgs(options.ghostArgs)
     ghosts = [
         ghostType(index=i + 1, numTraining=options.numTraining, **ghostOpts)
         for i in range(options.numGhosts)]
+    # Load ghosts from file and turn off training
     for ghost in ghosts:
         ghost.turnoff_training()
         ghost.load_from_file(filename)
@@ -77,6 +91,8 @@ def load_ghosts(options, filename):
 
 
 def run_games(args, ghosts, num_runs=5, graphics=True):
+    """ Run the games with the setup
+    """
     if graphics:
         import graphicsDisplay
         display = graphicsDisplay.PacmanGraphics(frameTime=0.1)
@@ -86,6 +102,7 @@ def run_games(args, ghosts, num_runs=5, graphics=True):
     import __main__
     __main__.__dict__['_display'] = display
 
+    # Run games with classic rules
     rules = ClassicGameRules(timeout=30)
     games = []
     for _ in range(num_runs):
@@ -101,11 +118,10 @@ if __name__ == '__main__':
     games = train(**args)
     scores = [-game.state.getScore() for game in games]
 
-    # Compute average score of last 10 episodes for smoothness in graph
-    # averages = [np.mean(scores[i-10:i+1]) for i in range(len(scores))]
     # Compute running averages for smoothness in graph
     averages = [np.mean(scores[:i + 1]) for i in range(len(scores))]
 
+    # Plot the training results and save them
     ghost = args['ghosts'][0]
     ghost_class_name = ghost.__class__.__name__
     plt.plot(averages)
@@ -118,6 +134,7 @@ if __name__ == '__main__':
     print("Plot successfully saved to {}".format(figname))
     plt.show()
 
+    # Save the agent and let them play games with graphics on
     ans = raw_input("Save the agent? (y/n) ")
     if ans == "y":
         ghost = args["ghosts"][0]

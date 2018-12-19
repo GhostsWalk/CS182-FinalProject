@@ -20,6 +20,8 @@ import util
 
 
 class GhostAgent( Agent, object):
+    """ Abstract Ghost Agent
+    """
     def __init__( self, index):
         self.index = index
 

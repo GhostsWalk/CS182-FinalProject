@@ -205,6 +205,8 @@ class AbstractQLearningGhost(GhostAgent):
         self.episodeRewards = 0.0
 
     def stopEpisode(self):
+        """ Stops an episode and turns off training if necessary
+        """
         if self.episodesSoFar < self.numTraining:
             # Still in training
             self.accumTrainRewards += self.episodeRewards
@@ -263,18 +265,25 @@ class AbstractQLearningGhost(GhostAgent):
         self.lastAction = action
 
     def turnoff_training(self):
+        """ Turn off parameters for training
+        """
         self.epsilon = 0
         self.alpha = 0
         self.shareQ = False
 
 
 class ApproxQLearningGhost(AbstractQLearningGhost):
+    """ Q-Learning Agent with Function Approximation
+    """
     def __init__(self, feature_extractor="GhostFeatureExtractor", **kwargs):
         self.feature_extractor = util.lookup(feature_extractor, globals())()
         self.weights = util.Counter()
         super(ApproxQLearningGhost, self).__init__(**kwargs)
 
     def export_data(self):
+        """
+        :return: data that is essential to replicate the trained agent
+        """
         data = {
             "alpha": self.alpha,
             "gamma": self.gamma,
@@ -302,6 +311,12 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
         return self.getWeights() * features
 
     def updateQValue(self, state, action, next_state, reward):
+        """ Update the weights by gradient descent
+        :param state: GameState
+        :param action: Directions
+        :param next_state: GameState
+        :param reward: numeric, reward for the transition
+        """
         next_state_value = self.getValue(next_state)
         current_q_value = self.getQValue(state, action)
         difference = reward + self.gamma * next_state_value - current_q_value
@@ -316,6 +331,9 @@ class ApproxQLearningGhost(AbstractQLearningGhost):
 
 class ExactQLearningGhost(AbstractQLearningGhost):
     def export_data(self):
+        """
+        :return: data for replicating the Q Learning agent after training
+        """
         data = {
             "alpha": self.alpha,
             "gamma": self.gamma,
@@ -325,12 +343,23 @@ class ExactQLearningGhost(AbstractQLearningGhost):
         return data
 
     def getQValue(self, state, action):
+        """
+        :param state: GameState
+        :param action: Directions
+        :return: Q value of (state, action) pair
+        """
         if self.shareQ:
             return shared_q[(state, action)]
         else:
             return self.q_values[(state, action)]
 
     def updateQValue(self, state, action, next_state, reward):
+        """ Updates the Q-value of (state, aciton) pair by running sum
+        :param state: GameState
+        :param action: Directions
+        :param next_state: GameState
+        :param reward: numeric, reward gained in transition
+        """
         next_state_value = self.getValue(next_state)
         current_q_value = self.getQValue(state, action)
         update = self.alpha * (

@@ -5,6 +5,9 @@ from train import load_setup, run_games, load_ghosts
 
 
 def read_command(argv):
+    """ Construct game parameters from the commands
+    :param argv: commandline arguments
+    """
     parser = get_default_parser()
     parser.add_option('-f', '--filename', dest='filename', type='str',
                       help=default(
@@ -28,6 +31,7 @@ def read_command(argv):
 
 
 if __name__ == "__main__":
+    # Load the game agent and run games with it
     args, options = read_command(sys.argv[1:])
     ghosts = load_ghosts(options, options.filename)
     run_games(args, ghosts)

@@ -3,15 +3,22 @@ from agent_utils.evaluationFunctions import *
 import util
 from util import string_to_bool
 import random
+from collections import deque
 
 
 class AlphaBetaGhost(GhostAgent):
+    """ Ghost Agent that runs AlphaBeta search on the game tree
+    """
     def __init__(self, index, evalFn='evaluationFunctionWithDistance', depth='2', **kwargs):
         self.index = index
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.max_depth = int(depth)
 
     def getAction( self, state ):
+        """
+        :param state: GameState
+        :return: best actino according to AlphaBeta search
+        """
         alpha = float("-inf")
         beta = float("inf")
         action, _ = self.getBestActionScore(state, alpha, beta,
@@ -19,6 +26,14 @@ class AlphaBetaGhost(GhostAgent):
         return action
 
     def getBestActionScore(self, state, alpha, beta, agent_index, current_depth):
+        """
+        :param state: GameState
+        :param alpha: numeric, best value max node can achieve so far
+        :param beta: numeric, best value min node can achieve so far
+        :param agent_index: int, agent index
+        :param current_depth: depth, current depth of the search
+        :return: Best action from this state
+        """
         legal_actions = state.getLegalActions(agent_index)
         if len(legal_actions) == 0:
             score = self.evaluationFunction(state)
@@ -106,6 +121,8 @@ class AlphaBetaGhost(GhostAgent):
 
 
 class Node:
+    """ Helper data structure for search
+    """
     def __init__(self, state, action, parent):
         self.state = state
         self.action = action
@@ -115,21 +132,27 @@ class Node:
         return self.state == other.state
 
     def first_action(self):
+        """
+        :return: first action that leads to this node
+        """
         node = self
         while node.parent is not None:
             node = node.parent
         return node.action
 
 
-from collections import deque
-
-
 class BFSGhost(GhostAgent):
+    """ Breadth First Search Ghost
+    """
     def __init__(self, index, partialObs=False, **kwargs):
         self.index = index
         self.partialObs = string_to_bool(partialObs)
 
     def getAction(self, state):
+        """
+        :param state: GameState
+        :return: Best action according to BFS
+        """
         if self.partialObs:
             observation = state.obs(self.index)
             pacman = observation.pacman_absolute
@@ -138,17 +161,20 @@ class BFSGhost(GhostAgent):
             pacman = state.getPacmanPosition()
         queue = deque()
 
+        # Keep a set of searched nodes
         explored = set()
         legal_actions = state.getLegalActions(self.index)
         if len(legal_actions) == 0:
             return None
         else:
+            # Append initial set of nodes
             for action in legal_actions:
                 next_state = state.generateSuccessor(self.index, action)
                 node = Node(next_state, action, None)
                 queue.append(node)
                 explored.add(next_state)
             while len(queue) > 0:
+                # Run BFS until finding the goal
                 node = queue.popleft()
                 state = node.state
 

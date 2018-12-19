@@ -71,7 +71,6 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
         return successorGameState.getScore()
 
 
@@ -117,8 +116,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
           gameState.getNumAgents():
             Returns the total number of agents in the game
-        """
-        "*** YOUR CODE HERE ***"
+        """\
         num_agents = gameState.getNumAgents()
         if num_agents < 2:
             raise Exception("Number of agents cannot be less than 2")
