@@ -627,9 +627,11 @@ _ORIGINAL_STDOUT = None
 _ORIGINAL_STDERR = None
 _MUTED = False
 
+
 class WritableNull:
     def write(self, string):
         pass
+
 
 def mutePrint():
     global _ORIGINAL_STDOUT, _ORIGINAL_STDERR, _MUTED
@@ -641,6 +643,7 @@ def mutePrint():
     #_ORIGINAL_STDERR = sys.stderr
     sys.stdout = WritableNull()
     #sys.stderr = WritableNull()
+
 
 def unmutePrint():
     global _ORIGINAL_STDOUT, _ORIGINAL_STDERR, _MUTED

@@ -71,6 +71,9 @@ def read_command(argv):
 
 
 def run_experiment(layout, pacman, ghosts, numTraining, catchExceotions=False, timeout=30):
+    """ Run an experiment with the provided layout, pacman and ghosts
+        Returns the game after it is run
+    """
     rules = ClassicGameRules(timeout)
     games = []
     for i in range(numTraining):
@@ -89,11 +92,10 @@ if __name__ == "__main__":
     games = run_experiment(**args)
     scores = [-game.state.getScore() for game in games]
 
-    # Compute average score of last 10 episodes for smoothness in graph
-    # averages = [np.mean(scores[i-10:i+1]) for i in range(len(scores))]
     # Compute running averages for smoothness in graph
     averages = [np.mean(scores[:i + 1]) for i in range(len(scores))]
 
+    # Plot and save the training results
     ghost_class_name = args['ghosts'][0].__class__.__name__
     plt.plot(averages)
     plt.title(ghost_class_name)

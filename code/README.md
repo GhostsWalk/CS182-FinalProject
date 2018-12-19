@@ -31,4 +31,4 @@ The default partial observation scheme is that the agents can not see further th
 
 eg. `python experiment.py --layout testRL --pacman=AlphaBetaAgent --ghosts=QLearningGhost --numTraining=500`
 
-It will generate a plot of the experiment, and save to `plots/{ghostType}-{layout}-{numTraining}.png`.
+It will generate a plot of the experiment, and save to `plots/{ghostType}-{layout}-{numTraining}-partialObs_{True/False}.png`.

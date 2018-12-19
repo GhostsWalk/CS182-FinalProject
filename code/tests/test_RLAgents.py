@@ -23,6 +23,3 @@ class TestRLAgents:
         games = run_games(args, ghosts, num_runs=num_runs, graphics=False)
         wins = [game.state.getScore() < 0 for game in games]
         assert sum(wins) >= num_runs * 0.8
-
-    def testExplorationExactQLearning(self):
-        pass

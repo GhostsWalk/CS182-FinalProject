@@ -1,5 +1,4 @@
 from util import manhattanDistance
-import util
 
 
 def scoreEvaluationFunction(currentGameState):
@@ -24,13 +23,3 @@ def evaluationFunctionWithDistance(state):
     distances = [manhattanDistance(pacman_pos, ghost) for ghost in positions]
     return score + sum(distances)
 
-
-def betterEvaluationFunction(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
-
-      DESCRIPTION: <write something here so we know what you did>
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
